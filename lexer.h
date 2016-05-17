@@ -12,12 +12,18 @@ typedef enum {
   STAR_TOK,
   FSLASH_TOK,
   LPAREN_TOK,
-  RPAREN_TOK
+  RPAREN_TOK,
+  RETURN_TOK,
+  IDENT_TOK,
+  SCOL_TOK
 } token_type_t;
 
 typedef struct token {
   token_type_t type;
-  int ival;
+  union {
+    int ival;
+    char *name;
+  };
 } token_t;
 
 token_t *tokenize(FILE *);

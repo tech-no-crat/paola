@@ -7,10 +7,6 @@ void print_tokens(token_t *token) {
   printf("Tokens:\n");
 
   for(;token->type != PROGRAM_END_TOK; token++) {
-    if (token->type == INT_LIT_TOK) {
-      printf("[INT %d] ", token->ival); 
-    }
-
     switch (token->type) {
       case INVALID_TOK:
         printf("[INVALID] ");
@@ -31,6 +27,18 @@ void print_tokens(token_t *token) {
         break;
       case MINUS_TOK:
         printf("[MINUS] ");
+        break;
+      case RETURN_TOK:
+        printf("[RETURN] ");
+        break;
+      case SCOL_TOK:
+        printf("[SCOL] ");
+        break;
+      case IDENT_TOK:
+        printf("[IDENT %s] ", token->name);
+        break;
+      case INT_LIT_TOK:
+        printf("[INT_LIT %d] ", token->ival);
         break;
       default:
         printf("[???] ");
@@ -56,23 +64,43 @@ char binop_char(operator_t op) {
   }
 }
 
-void print_ast(expr_ast_t *ast) {
+void print_expr_ast(expr_ast_t *ast) {
   switch (ast->type) {
-    case INVALID:
-      printf("invalid");
+    case INVALID_EXPR:
+      printf("InvalidExpression");
       break;
     case INT_LIT:
       printf("IntLit(%d)", ast->ival);
       break;
     case BIN_OP:
       printf("BinOp(%c, ", binop_char(ast->op));
-      print_ast(ast->left);
+      print_expr_ast(ast->left);
       printf(", ");
-      print_ast(ast->right);
+      print_expr_ast(ast->right);
       printf(")");
+      break;
+    default:
+      printf("UNKNOWN_EXPRESSION");
       break;
   }
 }
+
+void print_stat_ast(stat_ast_t *ast) {
+  switch (ast->type) {
+    case INVALID_STAT:
+      printf("InvalidStatement");
+      break;
+    case RETURN_STAT:
+      printf("Return(");
+      print_expr_ast(ast->expr);
+      printf(")\n");
+      break;
+    default:
+      printf("UKNOWN_STATEMENT\n");
+      break;
+  }
+}
+
 
 int main () {
   FILE *fin = fopen("test.c", "r");
@@ -80,9 +108,9 @@ int main () {
   token_t *tokens = tokenize(fin);
   print_tokens(tokens);
   
-  expr_ast_t *ast = parse(tokens);
+  stat_ast_t *ast = parse(tokens);
   printf("Parsed\n");
-  print_ast(ast);
+  print_stat_ast(ast);
 
   FILE *fout = fopen("out.s", "w");
   generate_code(fout, ast);

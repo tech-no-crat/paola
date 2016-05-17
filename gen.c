@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "gen.h"
 
+static void generate_statement(stat_ast_t *ast);
 static void generate_expression(expr_ast_t *ast);
 static void generate_binop(expr_ast_t *expr);
 static void generate_int_lit(expr_ast_t *expr);
@@ -8,12 +9,31 @@ static void init_gen(FILE *file);
 
 static FILE *out;
 
-void generate_code(FILE *file, expr_ast_t *ast) {
+void generate_code(FILE *file, stat_ast_t *ast) {
   init_gen(file);
 
   fprintf(out, "\t.text\n\t.globl _main\n_main:\n");
-  generate_expression(ast);
-  fprintf(out, "\tpopq %%rax\n\tret"); // Return whatever is on top of the stack
+  generate_statement(ast);
+}
+
+static void generate_statement(stat_ast_t *stat) {
+  switch (stat->type) {
+    case RETURN_STAT:
+      /* Generate code that will calculate the result of the expression and
+       * push it on top of the stack. */
+      generate_expression(stat->expr);
+
+      /* Now return whatever is on top of the stack. */
+      fprintf(out, "\tpopq %%rax\n\tret\n");
+      break;
+    default:
+      printf("Error: Don't know how to generate code for statement %d.\n", stat->type);
+      break;
+  }
+
+  if (stat->next) {
+    generate_statement(stat->next);
+  }
 }
 
 static void generate_expression(expr_ast_t *expr) {
@@ -25,7 +45,7 @@ static void generate_expression(expr_ast_t *expr) {
       generate_int_lit(expr);
       break;
     default:
-      printf("Error: Don't know how to generate code.\n");
+      printf("Error: Don't know how to generate code for expression.\n");
       break;
   };
 }

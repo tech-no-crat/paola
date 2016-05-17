@@ -1,20 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "lexer.h"
 
 static token_t next_token(void);
 static token_t create_token(token_type_t);
 static token_t create_int_lit_token(int);
+static token_t create_identifier_token(char *);
 static bool is_digit(char);
 static bool is_whitespace(char);
 static int consume_int_literal(void);
 static void consume_char(void);
 static void init_tokenizer(FILE *);
 static void skip_whitespace();
+static bool is_alphabetic(char);
+static bool is_alphanumeric(char);
+static token_t create_ident_or_keyword_token(char *);
+static char *consume_string(void);
 
 static const int MAX_TOKENS = 1000; //TODO: We don't want this.
+static const int MAX_STRING_SIZE = 64; //TODO: We don't want this either.
+
 static char next_char; /* The next character to be tokenized. */
 static FILE *input;
 
@@ -39,9 +47,13 @@ token_t next_token() {
   token_t token;
   skip_whitespace();
 
-  if (is_digit(next_char)) {
+  if (is_alphabetic(next_char)) {
+    token = create_ident_or_keyword_token(consume_string());
+    // We don't need to consume a char, consume_string has already done that.
+  }
+  else if (is_digit(next_char)) {
     token = create_int_lit_token(consume_int_literal());
-    // We don't need to consume a char, consume_int has already done that for us.
+    // We don't need to consume a char, consume_int has already done that
   } else {
     switch (next_char) {
       case EOF:
@@ -55,6 +67,9 @@ token_t next_token() {
         break;
       case '+':
         token = create_token(PLUS_TOK);
+        break;
+      case ';':
+        token = create_token(SCOL_TOK);
         break;
       case '-':
         token = create_token(MINUS_TOK);
@@ -104,7 +119,7 @@ static bool is_whitespace(char c) {
  * When it returns, next_char will not be a digit. */
 static int consume_int_literal(void) {
   int val = 0;
-  while (is_digit(next_char) && next_char != EOF) {
+  while (is_digit(next_char)) {
     val = (next_char-'0') + val * 10;
     consume_char();
   }
@@ -123,6 +138,44 @@ static void skip_whitespace(void) {
   while (is_whitespace(next_char)) {
     consume_char();
   }
+}
+
+/* Returns true if the char is in a-z, A-Z or an underscore (_). */
+static bool is_alphabetic(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
+}
+
+static bool is_alphanumeric(char c) {
+  return is_alphabetic(c) || is_digit(c);
+}
+
+static char *consume_string(void) {
+  char *str = (char *) malloc(sizeof(char) * MAX_STRING_SIZE);
+  int i = 0;
+  while (is_alphanumeric(next_char)) {
+    str[i++] = next_char;
+    consume_char();
+  }
+  str[i] = 0; /* End of string */
+  return str;
+}
+
+static token_t create_ident_or_keyword_token(char *str) {
+  if (strcmp("return", str) == 0) {
+    free(str); /* We don't need the string anymore. */
+    return create_token(RETURN_TOK);
+  } else {
+    /* It's not a reserved keyword, so it's an identifier. */
+    return create_identifier_token(str);
+  }
+}
+
+static token_t create_identifier_token(char *str) {
+  token_t token;
+  token.type = IDENT_TOK;
+  token.name = str;
+
+  return token;
 }
 
 static void init_tokenizer(FILE *file) {

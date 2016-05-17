@@ -4,11 +4,14 @@
 
 static void init_parser(token_t *tokens);
 static expr_ast_t *parse_expr(void);
+static stat_ast_t *parse_stat(void);
 static expr_ast_t *parse_term(void);
 static expr_ast_t *parse_factor(void);
 static expr_ast_t *parse_int_lit(void);
 static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
+static stat_ast_t *create_return_stat(expr_ast_t *);
 static expr_ast_t *create_invalid_expr(void);
+static stat_ast_t *create_invalid_stat(void);
 static operator_t match_binop(void);
 static bool is_factor_binop(token_t *token);
 static bool is_term_binop(token_t *token);
@@ -16,9 +19,27 @@ static void match_token(token_type_t);
 
 static token_t *next_token;
 
-expr_ast_t *parse(token_t *tokens) {
+stat_ast_t *parse(token_t *tokens) {
   init_parser(tokens);
-  return parse_expr();
+  return parse_stat();
+}
+
+stat_ast_t *parse_stat() {
+  if (next_token->type != RETURN_TOK) {
+    printf("Error: Expected return statement\n");
+    return create_invalid_stat(); 
+  }
+  match_token(RETURN_TOK);
+  expr_ast_t *expr = parse_expr();
+  match_token(SCOL_TOK);
+
+  stat_ast_t *stat = create_return_stat(expr);
+
+  if (next_token->type != PROGRAM_END_TOK) {
+    stat->next = parse_stat();
+  }
+
+  return stat;
 }
 
 static expr_ast_t *parse_expr() {
@@ -123,8 +144,23 @@ static bool is_term_binop(token_t *token) {
 
 static expr_ast_t *create_invalid_expr(void) {
   expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
-  expr->type = INVALID;
+  expr->type = INVALID_EXPR;
   return expr;
+}
+
+static stat_ast_t *create_invalid_stat(void) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = INVALID_STAT;
+  stat->next = 0;
+  return stat;
+}
+
+static stat_ast_t *create_return_stat(expr_ast_t *expr) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = RETURN_STAT;
+  stat->expr = expr;
+  stat->next = 0;
+  return stat;
 }
 
 static void init_parser(token_t *tokens) {
