@@ -56,6 +56,15 @@ token_t next_token() {
       case '+':
         token = create_token(PLUS_TOK);
         break;
+      case '-':
+        token = create_token(MINUS_TOK);
+        break;
+      case '*':
+        token = create_token(STAR_TOK);
+        break;
+      case '/':
+        token = create_token(FSLASH_TOK);
+        break;
       default:
         printf("Warning: Unknown character %c (%d)\n", next_char, next_char);
         token = create_token(INVALID_TOK);

@@ -33,12 +33,24 @@ static void generate_expression(expr_ast_t *expr) {
 static void generate_binop(expr_ast_t *expr) {
   generate_expression(expr->left);
   generate_expression(expr->right);
-  fprintf(out, "\tpopq %%rax\n");
   fprintf(out, "\tpopq %%rbx\n");
+  fprintf(out, "\tpopq %%rax\n");
 
   switch (expr->op) {
-    case PLUS:
+    case ADD:
       fprintf(out, "\taddq %%rbx, %%rax\n");
+      break;
+    case SUBS:
+      fprintf(out, "\tsubq %%rbx, %%rax\n");
+      break;
+    case DIV:
+      /* When dividing rdx and rax are concatinated, so we need to zero rdx
+       * first. */
+      fprintf(out, "\tmov $0, %%rdx\n");
+      fprintf(out, "\tidivq %%rbx, %%rax\n");
+      break;
+    case MUL:
+      fprintf(out, "\timulq %%rbx, %%rax\n");
       break;
     default:
       printf("Error: Don't know how to translate code for unknown \

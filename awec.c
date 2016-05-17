@@ -23,6 +23,18 @@ void print_tokens(token_t *token) {
       case PLUS_TOK:
         printf("[PLUS] ");
         break;
+      case STAR_TOK:
+        printf("[STAR] ");
+        break;
+      case FSLASH_TOK:
+        printf("[FSLASH] ");
+        break;
+      case MINUS_TOK:
+        printf("[MINUS] ");
+        break;
+      default:
+        printf("[???] ");
+        break;
     }
   }
 
@@ -31,8 +43,14 @@ void print_tokens(token_t *token) {
 
 char binop_char(operator_t op) {
   switch (op) {
-    case PLUS:
+    case ADD:
       return '+';
+    case SUBS:
+      return '-';
+    case MUL:
+      return '*';
+    case DIV:
+      return '/';
     default:
       return '?';
   }

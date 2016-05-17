@@ -10,7 +10,10 @@ typedef enum {
 
 typedef enum {
   INVALID_OP,
-  PLUS
+  ADD,
+  SUBS,
+  MUL,
+  DIV
 } operator_t;
 
 typedef struct expr_ast_type {

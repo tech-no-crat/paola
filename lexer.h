@@ -8,6 +8,9 @@ typedef enum {
   INVALID_TOK,
   INT_LIT_TOK,
   PLUS_TOK,
+  MINUS_TOK,
+  STAR_TOK,
+  FSLASH_TOK,
   LPAREN_TOK,
   RPAREN_TOK
 } token_type_t;

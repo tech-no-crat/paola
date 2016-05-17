@@ -5,11 +5,13 @@
 static void init_parser(token_t *tokens);
 static expr_ast_t *parse_expr(void);
 static expr_ast_t *parse_term(void);
+static expr_ast_t *parse_factor(void);
 static expr_ast_t *parse_int_lit(void);
 static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
 static expr_ast_t *create_invalid_expr(void);
 static operator_t match_binop(void);
-static bool is_binop(token_t *token);
+static bool is_factor_binop(token_t *token);
+static bool is_term_binop(token_t *token);
 static void match_token(token_type_t);
 
 static token_t *next_token;
@@ -22,7 +24,7 @@ expr_ast_t *parse(token_t *tokens) {
 static expr_ast_t *parse_expr() {
   expr_ast_t *expr = parse_term();
 
-  while (is_binop(next_token)) {
+  while (is_term_binop(next_token)) {
     operator_t op = match_binop();
 
     expr_ast_t *t = parse_term();
@@ -33,6 +35,19 @@ static expr_ast_t *parse_expr() {
 }
 
 static expr_ast_t *parse_term() {
+  expr_ast_t *expr = parse_factor();
+
+  while (is_factor_binop(next_token)) {
+    operator_t op = match_binop();
+
+    expr_ast_t *t = parse_term();
+    expr = create_binop_expr(op, expr, t);
+  }
+
+  return expr;
+}
+
+static expr_ast_t *parse_factor() {
   if (next_token->type == LPAREN_TOK) {
     match_token(LPAREN_TOK);
     expr_ast_t *expr = parse_expr();
@@ -72,7 +87,16 @@ static operator_t match_binop(void) {
   switch (next_token->type) {
     case PLUS_TOK:
       match_token(PLUS_TOK);
-      return PLUS;
+      return ADD;
+    case MINUS_TOK:
+      match_token(MINUS_TOK);
+      return SUBS;
+    case STAR_TOK:
+      match_token(STAR_TOK);
+      return MUL;
+    case FSLASH_TOK:
+      match_token(FSLASH_TOK);
+      return DIV;
     default:
       printf("Error: expected binary operator.\n");
       return INVALID_OP;
@@ -89,8 +113,12 @@ static void match_token(token_type_t type) {
   }
 }
 
-static bool is_binop(token_t *token) {
-  return token->type == PLUS_TOK;
+static bool is_factor_binop(token_t *token) {
+  return token->type == STAR_TOK || token->type == FSLASH_TOK;
+}
+
+static bool is_term_binop(token_t *token) {
+  return token->type == PLUS_TOK || token->type == MINUS_TOK;
 }
 
 static expr_ast_t *create_invalid_expr(void) {
