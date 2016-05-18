@@ -12,6 +12,8 @@ static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
 static stat_ast_t *create_return_stat(expr_ast_t *);
 static expr_ast_t *create_invalid_expr(void);
 static stat_ast_t *create_invalid_stat(void);
+static stat_ast_t *create_block_stat(void);
+static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
 static operator_t match_binop(void);
 static bool is_factor_binop(token_t *token);
 static bool is_term_binop(token_t *token);
@@ -25,18 +27,44 @@ stat_ast_t *parse(token_t *tokens) {
 }
 
 stat_ast_t *parse_stat() {
-  if (next_token->type != RETURN_TOK) {
-    printf("Error: Expected return statement\n");
-    return create_invalid_stat(); 
-  }
-  match_token(RETURN_TOK);
-  expr_ast_t *expr = parse_expr();
-  match_token(SCOL_TOK);
+  stat_ast_t *stat = 0;
+  switch (next_token->type) {
+    case RETURN_TOK:
+      {
+        match_token(RETURN_TOK);
+        expr_ast_t *expr = parse_expr();
+        stat = create_return_stat(expr);
+        match_token(SCOL_TOK);
+      }
+      break;
+    case IF_TOK:
+      {
+        match_token(IF_TOK);
+        match_token(LPAREN_TOK);
+        expr_ast_t *cond = parse_expr();
+        match_token(RPAREN_TOK);
+        stat_ast_t *tstat = parse_stat();
+        stat_ast_t *fstat = 0;
 
-  stat_ast_t *stat = create_return_stat(expr);
+        if(next_token->type == ELSE_TOK) {
+          match_token(ELSE_TOK);
+          fstat = parse_stat();
+        }
 
-  if (next_token->type != PROGRAM_END_TOK) {
-    stat->next = parse_stat();
+        stat = create_if_stat(cond, tstat, fstat);
+      }
+      break;
+    case LBRACE_TOK:
+      match_token(LBRACE_TOK);
+      stat = create_block_stat();
+      while (next_token->type != RBRACE_TOK) {
+        list_push_back(&stat->stats, &(parse_stat()->block_elem));
+      }
+      match_token(RBRACE_TOK);
+      break;
+    default:
+      printf("Error: Expected start of statement, but found token %d\n", next_token->type);
+      return create_invalid_stat(); 
   }
 
   return stat;
@@ -130,7 +158,7 @@ static void match_token(token_type_t type) {
       next_token++;
     }
   } else {
-    printf("Error: expected some other token.\n");
+    printf("Error: expected token %d, but found token %d.\n", type, next_token->type);
   }
 }
 
@@ -151,7 +179,6 @@ static expr_ast_t *create_invalid_expr(void) {
 static stat_ast_t *create_invalid_stat(void) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = INVALID_STAT;
-  stat->next = 0;
   return stat;
 }
 
@@ -159,7 +186,24 @@ static stat_ast_t *create_return_stat(expr_ast_t *expr) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = RETURN_STAT;
   stat->expr = expr;
-  stat->next = 0;
+  return stat;
+}
+
+static stat_ast_t *create_block_stat(void) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = BLOCK_STAT;
+  list_init(&stat->stats);
+
+  return stat;
+}
+static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
+    stat_ast_t *fstat) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = IF_STAT;
+  stat->cond = cond;
+  stat->tstat = tstat;
+  stat->fstat = fstat;
+
   return stat;
 }
 

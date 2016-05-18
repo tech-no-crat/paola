@@ -40,8 +40,20 @@ void print_tokens(token_t *token) {
       case INT_LIT_TOK:
         printf("[INT_LIT %d] ", token->ival);
         break;
+      case LBRACE_TOK:
+        printf("[LBRACE] ");
+        break;
+      case RBRACE_TOK:
+        printf("[RBRACE] ");
+        break;
+      case IF_TOK:
+        printf("[IF] ");
+        break;
+      case ELSE_TOK:
+        printf("[ELSE] ");
+        break;
       default:
-        printf("[???] ");
+        printf("[?UNKNOWN?] ");
         break;
     }
   }
@@ -65,6 +77,10 @@ char binop_char(operator_t op) {
 }
 
 void print_expr_ast(expr_ast_t *ast) {
+  if (!ast) {
+    printf("null expr\n");
+    return;
+  }
   switch (ast->type) {
     case INVALID_EXPR:
       printf("InvalidExpression");
@@ -86,6 +102,10 @@ void print_expr_ast(expr_ast_t *ast) {
 }
 
 void print_stat_ast(stat_ast_t *ast) {
+  if (!ast) {
+    printf("Skip");
+    return;
+  }
   switch (ast->type) {
     case INVALID_STAT:
       printf("InvalidStatement");
@@ -93,10 +113,29 @@ void print_stat_ast(stat_ast_t *ast) {
     case RETURN_STAT:
       printf("Return(");
       print_expr_ast(ast->expr);
-      printf(")\n");
+      printf(")");
+      break;
+    case IF_STAT:
+      printf("If(");
+      print_expr_ast(ast->cond);
+      printf(", ");
+      print_stat_ast(ast->tstat);
+      printf(", ");
+      print_stat_ast(ast->fstat);
+      printf(")");
+      break;
+    case BLOCK_STAT:
+      printf("Block[");
+      for (list_elem_t *e = list_begin(&(ast->stats)); e != list_end(&(ast->stats));
+          e = list_next(e)) {
+        stat_ast_t *stat = list_entry(e, stat_ast_t, block_elem);
+        print_stat_ast(stat);
+        printf(", ");
+      }
+      printf("Skip]");
       break;
     default:
-      printf("UKNOWN_STATEMENT\n");
+      printf("UNKNOWN_STATEMENT\n");
       break;
   }
 }
@@ -111,6 +150,7 @@ int main () {
   stat_ast_t *ast = parse(tokens);
   printf("Parsed\n");
   print_stat_ast(ast);
+  printf("\n");
 
   FILE *fout = fopen("out.s", "w");
   generate_code(fout, ast);

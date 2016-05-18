@@ -1,2 +1,5 @@
-return ((1+1)   + (16 - 8) * 4 + 1)/  5;
-return 42;
+if ( 5 +  2 * 2 - 9 ) {
+  return 42;
+} else {
+  return 1;
+}

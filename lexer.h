@@ -13,7 +13,11 @@ typedef enum {
   FSLASH_TOK,
   LPAREN_TOK,
   RPAREN_TOK,
+  LBRACE_TOK,
+  RBRACE_TOK,
   RETURN_TOK,
+  IF_TOK,
+  ELSE_TOK,
   IDENT_TOK,
   SCOL_TOK
 } token_type_t;

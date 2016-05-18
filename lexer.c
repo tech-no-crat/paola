@@ -68,9 +68,6 @@ token_t next_token() {
       case '+':
         token = create_token(PLUS_TOK);
         break;
-      case ';':
-        token = create_token(SCOL_TOK);
-        break;
       case '-':
         token = create_token(MINUS_TOK);
         break;
@@ -79,6 +76,15 @@ token_t next_token() {
         break;
       case '/':
         token = create_token(FSLASH_TOK);
+        break;
+      case '{':
+        token = create_token(LBRACE_TOK);
+        break;
+      case '}':
+        token = create_token(RBRACE_TOK);
+        break;
+      case ';':
+        token = create_token(SCOL_TOK);
         break;
       default:
         printf("Warning: Unknown character %c (%d)\n", next_char, next_char);
@@ -164,6 +170,12 @@ static token_t create_ident_or_keyword_token(char *str) {
   if (strcmp("return", str) == 0) {
     free(str); /* We don't need the string anymore. */
     return create_token(RETURN_TOK);
+  } else if (strcmp("if", str) == 0) {
+    free(str);
+    return create_token(IF_TOK);
+  } else if (strcmp("else", str) == 0) {
+    free(str);
+    return create_token(ELSE_TOK);
   } else {
     /* It's not a reserved keyword, so it's an identifier. */
     return create_identifier_token(str);
