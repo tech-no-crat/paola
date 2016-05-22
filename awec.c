@@ -102,10 +102,6 @@ void print_expr_ast(expr_ast_t *ast) {
 }
 
 void print_stat_ast(stat_ast_t *ast) {
-  if (!ast) {
-    printf("Skip");
-    return;
-  }
   switch (ast->type) {
     case INVALID_STAT:
       printf("InvalidStatement");
@@ -121,7 +117,11 @@ void print_stat_ast(stat_ast_t *ast) {
       printf(", ");
       print_stat_ast(ast->tstat);
       printf(", ");
-      print_stat_ast(ast->fstat);
+      if (ast->fstat) {
+        print_stat_ast(ast->fstat);
+      } else {
+        printf("Skip");
+      }
       printf(")");
       break;
     case BLOCK_STAT:
