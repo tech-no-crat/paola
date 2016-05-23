@@ -86,6 +86,9 @@ token_t next_token() {
       case ';':
         token = create_token(SCOL_TOK);
         break;
+      case '=':
+        token = create_token(EQ_TOK);
+        break;
       default:
         printf("Warning: Unknown character %c (%d)\n", next_char, next_char);
         token = create_token(INVALID_TOK);

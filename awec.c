@@ -71,6 +71,8 @@ char binop_char(operator_t op) {
       return '*';
     case DIV:
       return '/';
+    case ASSIGN:
+      return '=';
     default:
       return '?';
   }
@@ -94,6 +96,9 @@ void print_expr_ast(expr_ast_t *ast) {
       printf(", ");
       print_expr_ast(ast->right);
       printf(")");
+      break;
+    case VAR_REF:
+      printf("VarRef(%s)", ast->name);
       break;
     default:
       printf("UNKNOWN_EXPRESSION");
@@ -134,8 +139,22 @@ void print_stat_ast(stat_ast_t *ast) {
       }
       printf("Skip]");
       break;
+    case EXPR_STAT:
+      printf("Expression(");
+      print_expr_ast(ast->expr);
+      printf(")");
+      break;
+    case DECL_STAT:
+      printf("Declaration(%s, %s, ", ast->datatype, ast->target);
+      if (ast->value) {
+        print_expr_ast(ast->value);
+      } else {
+        printf("Skip");
+      }
+      printf(")");
+      break;
     default:
-      printf("UNKNOWN_STATEMENT\n");
+      printf("UNKNOWN_STATEMENT");
       break;
   }
 }

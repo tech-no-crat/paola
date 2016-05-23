@@ -1,23 +1,37 @@
 #include "parser.h"
+#include <assert.h>
+#include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
 static void init_parser(token_t *tokens);
+
 static expr_ast_t *parse_expr(void);
+static expr_ast_t *parse_subexpr(void);
 static stat_ast_t *parse_stat(void);
 static expr_ast_t *parse_term(void);
 static expr_ast_t *parse_factor(void);
 static expr_ast_t *parse_int_lit(void);
+static stat_ast_t *parse_declaration(void);
+static expr_ast_t *parse_variable_ref(void);
+
 static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
 static stat_ast_t *create_return_stat(expr_ast_t *);
 static expr_ast_t *create_invalid_expr(void);
 static stat_ast_t *create_invalid_stat(void);
 static stat_ast_t *create_block_stat(void);
 static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
+static expr_ast_t *create_variable_ref(char *);
+static stat_ast_t *create_declaration(char *, char *, expr_ast_t *);
+static stat_ast_t *create_expr_statement(expr_ast_t *);
+
 static operator_t match_binop(void);
 static bool is_factor_binop(token_t *token);
 static bool is_term_binop(token_t *token);
+static bool is_expr_binop(token_t *token);
+static bool is_type_ident(token_t *token);
 static void match_token(token_type_t);
+static token_t *peek(void);
 
 static token_t *next_token;
 
@@ -62,8 +76,24 @@ stat_ast_t *parse_stat() {
       }
       match_token(RBRACE_TOK);
       break;
+    case IDENT_TOK:
+      if (is_type_ident(next_token)) {
+        stat = parse_declaration();
+      } else {
+        stat = create_expr_statement(parse_expr());
+      }
+      match_token(SCOL_TOK);
+      break;
+    case INT_LIT_TOK:
+      stat = create_expr_statement(parse_expr());
+      match_token(SCOL_TOK);
+      break;
     default:
       printf("Error: Expected start of statement, but found token %d\n", next_token->type);
+      while (next_token->type != SCOL_TOK && next_token->type != PROGRAM_END_TOK) {
+        match_token(next_token->type);
+      }
+      match_token(SCOL_TOK);
       return create_invalid_stat(); 
   }
 
@@ -71,6 +101,18 @@ stat_ast_t *parse_stat() {
 }
 
 static expr_ast_t *parse_expr() {
+  expr_ast_t *expr = parse_subexpr();
+
+  if (is_expr_binop(next_token)) {
+    operator_t op = match_binop();
+    expr_ast_t *t = parse_subexpr();
+    expr = create_binop_expr(op, expr, t);
+  }
+
+  return expr;
+}
+
+static expr_ast_t *parse_subexpr() {
   expr_ast_t *expr = parse_term();
 
   while (is_term_binop(next_token)) {
@@ -104,7 +146,17 @@ static expr_ast_t *parse_factor() {
     return expr;
   }
 
+  if (next_token->type == IDENT_TOK) {
+    return parse_variable_ref();
+  }
+
   return parse_int_lit();
+}
+
+static expr_ast_t *parse_variable_ref() {
+  char *name = next_token->name;
+  match_token(IDENT_TOK);
+  return create_variable_ref(name);
 }
 
 static expr_ast_t *parse_int_lit() {
@@ -119,6 +171,21 @@ static expr_ast_t *parse_int_lit() {
   match_token(INT_LIT_TOK);
 
   return expr;
+}
+
+static stat_ast_t *parse_declaration() {
+  char *type = next_token->name;
+  match_token(IDENT_TOK);
+  char *target = next_token->name;
+  match_token(IDENT_TOK);
+
+  expr_ast_t *value = 0;
+  if (next_token->type == EQ_TOK) {
+    match_token(EQ_TOK);
+    value = parse_expr();
+  }
+
+  return create_declaration(type, target, value);
 }
 
 static expr_ast_t *create_binop_expr(operator_t op, expr_ast_t *left,
@@ -146,6 +213,9 @@ static operator_t match_binop(void) {
     case FSLASH_TOK:
       match_token(FSLASH_TOK);
       return DIV;
+    case EQ_TOK:
+      match_token(EQ_TOK);
+      return ASSIGN;
     default:
       printf("Error: expected binary operator.\n");
       return INVALID_OP;
@@ -162,12 +232,22 @@ static void match_token(token_type_t type) {
   }
 }
 
+static token_t *peek(void) {
+  assert(next_token->type != PROGRAM_END_TOK);
+  return next_token + 1;
+}
+
 static bool is_factor_binop(token_t *token) {
   return token->type == STAR_TOK || token->type == FSLASH_TOK;
 }
 
 static bool is_term_binop(token_t *token) {
   return token->type == PLUS_TOK || token->type == MINUS_TOK;
+}
+
+
+static bool is_expr_binop(token_t *token) {
+  return token->type == EQ_TOK;
 }
 
 static expr_ast_t *create_invalid_expr(void) {
@@ -189,6 +269,13 @@ static stat_ast_t *create_return_stat(expr_ast_t *expr) {
   return stat;
 }
 
+static stat_ast_t *create_expr_statement(expr_ast_t *expr) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = EXPR_STAT;
+  stat->expr = expr;
+  return stat;
+}
+
 static stat_ast_t *create_block_stat(void) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = BLOCK_STAT;
@@ -196,6 +283,7 @@ static stat_ast_t *create_block_stat(void) {
 
   return stat;
 }
+
 static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
     stat_ast_t *fstat) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
@@ -205,6 +293,26 @@ static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
   stat->fstat = fstat;
 
   return stat;
+}
+
+static expr_ast_t *create_variable_ref(char *name) {
+  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->type = VAR_REF;
+  expr->name = name;
+  return expr;
+}
+
+static stat_ast_t *create_declaration(char *datatype, char *target, expr_ast_t *value) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = DECL_STAT;
+  stat->datatype = datatype;
+  stat->target = target;
+  stat->value = value;
+  return stat;
+}
+
+static bool is_type_ident(token_t *token) {
+  return (token->type == IDENT_TOK && strcmp(token->name, "int") == 0);
 }
 
 static void init_parser(token_t *tokens) {

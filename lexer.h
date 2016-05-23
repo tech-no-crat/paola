@@ -19,7 +19,8 @@ typedef enum {
   IF_TOK,
   ELSE_TOK,
   IDENT_TOK,
-  SCOL_TOK
+  SCOL_TOK,
+  EQ_TOK
 } token_type_t;
 
 typedef struct token {
