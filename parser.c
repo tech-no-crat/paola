@@ -22,9 +22,10 @@ static stat_ast_t *create_invalid_stat(void);
 static stat_ast_t *create_block_stat(void);
 static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
 static expr_ast_t *create_variable_ref(char *);
-static stat_ast_t *create_declaration(char *, char *, expr_ast_t *);
+static stat_ast_t *create_declaration(datatype_t, char *, expr_ast_t *);
 static stat_ast_t *create_expr_statement(expr_ast_t *);
 
+static datatype_t match_datatype(token_t *token);
 static operator_t match_binop(void);
 static bool is_factor_binop(token_t *token);
 static bool is_term_binop(token_t *token);
@@ -106,6 +107,7 @@ static expr_ast_t *parse_expr() {
   if (is_expr_binop(next_token)) {
     operator_t op = match_binop();
     expr_ast_t *t = parse_subexpr();
+    expr->assign = true;
     expr = create_binop_expr(op, expr, t);
   }
 
@@ -166,6 +168,7 @@ static expr_ast_t *parse_int_lit() {
   }
 
   expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->assign = false;
   expr->type = INT_LIT;
   expr->ival = next_token->ival;
   match_token(INT_LIT_TOK);
@@ -174,7 +177,7 @@ static expr_ast_t *parse_int_lit() {
 }
 
 static stat_ast_t *parse_declaration() {
-  char *type = next_token->name;
+  datatype_t type = match_datatype(next_token);
   match_token(IDENT_TOK);
   char *target = next_token->name;
   match_token(IDENT_TOK);
@@ -191,6 +194,7 @@ static stat_ast_t *parse_declaration() {
 static expr_ast_t *create_binop_expr(operator_t op, expr_ast_t *left,
     expr_ast_t *right) {
   expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->assign = false;
   expr->type = BIN_OP;
   expr->op = op;
   expr->left = left;
@@ -219,6 +223,15 @@ static operator_t match_binop(void) {
     default:
       printf("Error: expected binary operator.\n");
       return INVALID_OP;
+  }
+}
+
+static datatype_t match_datatype(token_t *token) {
+  if (strcmp(next_token->name, "int") == 0) {
+    return INT_DT;
+  } else {
+    printf("Error: Unknown datatype '%s'\n", next_token->name);
+    return INVALID_DT;
   }
 }
 
@@ -252,6 +265,7 @@ static bool is_expr_binop(token_t *token) {
 
 static expr_ast_t *create_invalid_expr(void) {
   expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->assign = false;
   expr->type = INVALID_EXPR;
   return expr;
 }
@@ -297,12 +311,13 @@ static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
 
 static expr_ast_t *create_variable_ref(char *name) {
   expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->assign = false;
   expr->type = VAR_REF;
   expr->name = name;
   return expr;
 }
 
-static stat_ast_t *create_declaration(char *datatype, char *target, expr_ast_t *value) {
+static stat_ast_t *create_declaration(datatype_t datatype, char *target, expr_ast_t *value) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = DECL_STAT;
   stat->datatype = datatype;

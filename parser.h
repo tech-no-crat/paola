@@ -11,6 +11,11 @@ typedef enum {
 } expr_ast_type_t;
 
 typedef enum {
+  INVALID_DT,
+  INT_DT
+} datatype_t;
+
+typedef enum {
   INVALID_STAT,
   RETURN_STAT,
   IF_STAT,
@@ -30,13 +35,14 @@ typedef enum {
 
 typedef struct expr_ast_type {
   expr_ast_type_t type;
+  bool assign;
   union {
     int ival; // INT_LIT
     struct {  // BIN_OP
       operator_t op;
       expr_ast_type *left, *right;
     };
-    char *name;
+    char *name; // VAR_REF
   };
 } expr_ast_t;
 
@@ -54,7 +60,7 @@ typedef struct stat_ast_type {
     list_t stats; // BLOCK_STAT
 
     struct { // DECL_STAT
-      char *datatype;
+      datatype_t datatype;
       char *target;
       expr_ast_t *value;
     };

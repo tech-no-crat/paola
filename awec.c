@@ -2,6 +2,7 @@
 #include "gen.h"
 #include "lexer.h"
 #include "parser.h"
+#include "semcheck.h"
 
 void print_tokens(token_t *token) {
   printf("Tokens:\n");
@@ -52,6 +53,9 @@ void print_tokens(token_t *token) {
       case ELSE_TOK:
         printf("[ELSE] ");
         break;
+      case EQ_TOK:
+        printf("[EQ] ");
+        break;
       default:
         printf("[?UNKNOWN?] ");
         break;
@@ -75,6 +79,17 @@ char binop_char(operator_t op) {
       return '=';
     default:
       return '?';
+  }
+}
+
+char *datatype_string(datatype_t datatype) {
+  switch (datatype) {
+    case INVALID_DT:
+      return "INVALID_TYPE";
+    case INT_DT:
+      return "INT_TYPE";
+    default:
+      return "UNKNOWN_TYPE";
   }
 }
 
@@ -145,7 +160,7 @@ void print_stat_ast(stat_ast_t *ast) {
       printf(")");
       break;
     case DECL_STAT:
-      printf("Declaration(%s, %s, ", ast->datatype, ast->target);
+      printf("Declaration(%s, %s, ", datatype_string(ast->datatype), ast->target);
       if (ast->value) {
         print_expr_ast(ast->value);
       } else {
@@ -170,6 +185,8 @@ int main () {
   printf("Parsed\n");
   print_stat_ast(ast);
   printf("\n");
+
+  semcheck(ast);
 
   FILE *fout = fopen("out.s", "w");
   generate_code(fout, ast);

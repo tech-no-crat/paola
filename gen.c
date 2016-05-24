@@ -3,9 +3,11 @@
 #include <stdint.h>
 #include <assert.h>
 #include "gen.h"
+#include "symtable.h"
 
 static void generate_statement(stat_ast_t *, uint16_t);
 static void generate_expression(expr_ast_t *, uint16_t);
+static void generate_var_ref(expr_ast_t *expr, uint16_t regset);
 static void generate_binop(expr_ast_t *, uint16_t);
 static void generate_int_lit(expr_ast_t *, uint16_t);
 static void init_gen(FILE *file);
@@ -16,6 +18,7 @@ static const char *next_reg_name(uint16_t);
 
 static FILE *out;
 static int next_label;
+static int next_stack_offset;
 
 static const uint8_t register_count = 11;
 static const uint16_t initial_regset = (1 << register_count) - 1; // All registers
@@ -69,14 +72,26 @@ static void generate_statement(stat_ast_t *stat, uint16_t regset) {
         generate_statement(stat->fstat, regset);
       }
       break;
-    } case BLOCK_STAT:
+    } case BLOCK_STAT: {
       for (list_elem_t *e = list_begin(&(stat->stats)); e != list_end(&(stat->stats));
           e = list_next(e)) {
         stat_ast_t *s = list_entry(e, stat_ast_t, block_elem);
         generate_statement(s, regset);
       }
       break;
-    default:
+    } case DECL_STAT: {
+      symbol_t *symbol = symtable_find(stat->target);
+      assert(symbol != 0);
+      assert(symbol->datatype == INT_DT);
+
+      int datatype_size = 8; //TODO: Should depend on sizeof(type)
+      symbol->stack_offset = next_stack_offset;
+      next_stack_offset += datatype_size;
+      break;
+    } case EXPR_STAT: {
+      generate_expression(stat->expr, regset);
+      break;
+    } default:
       printf("Error: Don't know how to generate code for statement %d.\n", stat->type);
       break;
   }
@@ -90,10 +105,29 @@ static void generate_expression(expr_ast_t *expr, uint16_t regset) {
     case INT_LIT:
       generate_int_lit(expr, regset);
       break;
+    case VAR_REF:
+      generate_var_ref(expr, regset);
+      break;
     default:
       printf("Error: Don't know how to generate code for expression.\n");
       break;
   };
+}
+
+static void generate_var_ref(expr_ast_t *expr, uint16_t regset) {
+  symbol_t *symbol = symtable_find(expr->name);
+  assert(symbol != 0);
+  assert(symbol->datatype == INT_DT);
+  
+  if (expr->assign) { // Leave the address at the destination register
+    const char *dst = next_reg_name(regset);
+    fprintf(out, "\tmovq $-%d, %%%s\n", symbol->stack_offset, dst); // - stack offset -> dst
+    fprintf(out, "\taddq %%rsp, %%%s\n", dst); // dst = dst + stack pointer
+  } else { // Leave the value at the destination register
+    const char *dst = next_reg_name(regset);
+    
+    fprintf(out, "\tmovq -%d(%%rsp), %%%s\n", symbol->stack_offset, dst);
+  }
 }
 
 static void generate_binop(expr_ast_t *expr, uint16_t regset) {
@@ -120,7 +154,10 @@ static void generate_binop(expr_ast_t *expr, uint16_t regset) {
     case MUL:
       fprintf(out, "\timulq %%%s, %%%s\n", right_reg, left_reg);
       break;
-    default:
+    case ASSIGN: {
+      fprintf(out, "\tmovq %%%s, (%%%s)\n", right_reg, left_reg);
+      break;
+    } default:
       printf("Error: Don't know how to translate code for unknown \
           binary operator\n");
       break;
@@ -139,6 +176,7 @@ static int get_label() {
 static void init_gen(FILE *file) {
   out = file;
   next_label = 0;
+  next_stack_offset = 8;
 }
 
 static uint16_t consume_reg(uint16_t regset) {
