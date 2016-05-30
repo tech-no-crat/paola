@@ -1,6 +1,9 @@
 CC=g++
 .PHONY: clean
 
+test: all
+	./tests/run_tests.sh
+
 all: awec.o gen.o lexer.o parser.o semcheck.o list.o symtable.o errors.o
 	$(CC) -o awec awec.o gen.o lexer.o parser.o semcheck.o list.o symtable.o errors.o
 

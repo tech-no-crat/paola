@@ -110,8 +110,8 @@ void if_errors_exit() {
   }
 }
 
-int main () {
-  FILE *fin = fopen("test.c", "r");
+int main (int argc, char **argv) {
+  FILE *fin = fopen(argv[1], "r");
   errors_init();
 
   token_t *tokens = tokenize(fin);

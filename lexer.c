@@ -22,6 +22,8 @@ static bool is_alphabetic(char);
 static bool is_alphanumeric(char);
 static token_t create_ident_or_keyword_token(char *);
 static char *consume_string(void);
+static void skip_line();
+static char peek();
 
 static const int MAX_TOKENS = 10000; //TODO: We don't want this.
 static const int MAX_STRING_SIZE = 64; //TODO: We don't want this either.
@@ -36,13 +38,20 @@ token_t *tokenize(FILE *file) {
 
   token_t *tokens = (token_t *) malloc(sizeof(token_t) * MAX_TOKENS);
   int i = 0;
+  int token_count = 0;
   
   do {
     tokens[i] = next_token();
+    if (tokens[i].type != INVALID_TOK) token_count++;
   } while (tokens[i++].type != PROGRAM_END_TOK);
 
-  token_t *ret = (token_t *) malloc(sizeof(token_t) * i);
-  memcpy(ret, tokens, sizeof(token_t) * i);
+  token_t *ret = (token_t *) malloc(sizeof(token_t) * token_count);
+  int c = 0;
+  for (int j = 0; j < i; j++) {
+    if (tokens[j].type != INVALID_TOK) {
+      ret[c++] = tokens[j];
+    }
+  }
   free(tokens);
 
   return ret;
@@ -83,7 +92,12 @@ token_t next_token() {
         token = create_token(STAR_TOK);
         break;
       case '/':
-        token = create_token(FSLASH_TOK);
+        if (peek() == '/') {
+          token = create_token(INVALID_TOK);
+          skip_line();
+        } else {
+          token = create_token(FSLASH_TOK);
+        }
         break;
       case '{':
         token = create_token(LBRACE_TOK);
@@ -109,6 +123,7 @@ token_t next_token() {
 
   return token;
 }
+
 
 static token_t create_token(token_type_t type) {
   token_t token;
@@ -154,7 +169,13 @@ static int consume_int_literal(void) {
 
 /* Takes a single char from the input file and stores it in next_char. */
 static void consume_char(void) {
-  character++;
+  if (next_char == '\n') {
+    line++;
+    character = 0;
+  } else {
+    character++;
+  }
+
   next_char = fgetc(input);
 }
 
@@ -163,12 +184,20 @@ static void consume_char(void) {
  * non-whitespace character.  */
 static void skip_whitespace(void) {
   while (is_whitespace(next_char)) {
-    if (next_char == '\n') {
-      character = 1;
-      line++;
-    }
     consume_char();
   }
+}
+
+static void skip_line() {
+  while (next_char != '\n') {
+    consume_char();
+  }
+}
+
+static char peek() {
+  char c = fgetc(input);
+  ungetc(c, input);
+  return c;
 }
 
 /* Returns true if the char is in a-z, A-Z or an underscore (_). */
