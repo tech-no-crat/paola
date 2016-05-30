@@ -24,7 +24,7 @@ static int next_label;
 static int next_stack_offset;
 
 static const uint8_t register_count = 11;
-static const uint16_t initial_regset = (1 << register_count) - 1; // All registers
+static const uint16_t initial_regset = (1 << 11) - 1; // All registers
 static const char *register_names[11] = {
   "rax",
   "rbx",
@@ -43,7 +43,7 @@ static const char *register_names[11] = {
 void generate_code(FILE *file, stat_ast_t *ast) {
   init_gen(file);
 
-  fprintf(out, "\t.text\n\t.globl _main\n_main:\n");
+  fprintf(out, "\t.text\n\t.globl main\nmain:\n");
   generate_statement(ast, initial_regset);
 }
 

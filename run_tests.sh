@@ -2,11 +2,10 @@ fail=0
 pass=0
 total=0
 
-function run_test () {
+run_test () {
   expect=`cat $test | sed -En 's/.*@EXPECT ([0-9]+)/\1/p'`
 
-  rm out.s
-  (./awec $test > /dev/null)
+  (./bin/awec $test > /dev/null)
 
   total=$((total+1))
   if [ $? -ne 0 ]; then
@@ -30,6 +29,9 @@ function run_test () {
 for test in $(find ./tests -name '*.c'); do
   run_test
 done
+
+rm -f out.s
+rm -f out
 
 echo ""
 echo "PASS $pass/$total"

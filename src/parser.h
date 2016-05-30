@@ -40,7 +40,7 @@ typedef struct expr_ast_type {
     int ival; // INT_LIT
     struct {  // BIN_OP
       operator_t op;
-      expr_ast_type *left, *right;
+      struct expr_ast_type *left, *right;
     };
     char *name; // VAR_REF
   };
@@ -54,7 +54,7 @@ typedef struct stat_ast_type {
     
     struct { // IF_STAT
       expr_ast_t *cond;
-      stat_ast_type *tstat, *fstat;
+      struct stat_ast_type *tstat, *fstat;
     };
 
     list_t stats; // BLOCK_STAT

@@ -1,21 +1,22 @@
-CC=g++
+CC=gcc
+CFLAGS= -m64 -std=c99
+BIN=./bin/
+SOURCE=./src/
 .PHONY: clean
+.PHONY: test
 
 test: all
-	./tests/run_tests.sh
+	./run_tests.sh
 
-all: awec.o gen.o lexer.o parser.o semcheck.o list.o symtable.o errors.o
-	$(CC) -o awec awec.o gen.o lexer.o parser.o semcheck.o list.o symtable.o errors.o
+LIST= $(BIN)awec.o $(BIN)gen.o $(BIN)lexer.o $(BIN)parser.o $(BIN)semcheck.o $(BIN)list.o $(BIN)symtable.o $(BIN)errors.o
+all: $(LIST)
+	$(CC) $(CFLAGS) -o $(BIN)awec $(LIST)
 
-awec.o: awec.c
+$(BIN)%.o: $(SOURCE)%.c $(SOURCE)%.h
+	$(CC) $(CFLAGS) $(SOURCE)$*.c -c -o $(BIN)$*.o
 
-lexer.o: lexer.c lexer.h
-parser.o: parser.c parser.h
-semcheck.o: semcheck.c semcheck.h
-gen.o: gen.c gen.h
-list.o: list.c list.h
-symtable.o: symtable.c symtable.h
-errors.o: errors.c errors.h
+$(BIN)%.o: $(SOURCE)%.c
+	$(CC) $(CFLAGS) $(SOURCE)$*.c -c -o $(BIN)$*.o
 
 clean:
-	rm -rf *.o
+	rm -rf $(BIN)*.o

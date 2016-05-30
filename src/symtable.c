@@ -2,6 +2,7 @@
 #include "list.h"
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 static list_t symtable; //TODO: should be a list of hashtables
 

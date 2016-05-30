@@ -111,11 +111,12 @@ token_t next_token() {
       case '=':
         token = create_token(EQ_TOK);
         break;
-      default:
+      default: {
         position_t pos = create_position();
         warning(&pos, "Unknown token %c (%d)\n", next_char, next_char);
         token = create_token(INVALID_TOK);
         break;
+      }
     }
 
     consume_char(); // Consume the char we just read

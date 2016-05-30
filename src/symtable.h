@@ -7,7 +7,7 @@
 typedef struct {
   char *name;
   datatype_t datatype;
-  list_elem elem;
+  list_elem_t elem;
   uint32_t stack_offset;
   //TODO: Also store info about whether it's a function, if it's constant etc.
 } symbol_t;

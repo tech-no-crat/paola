@@ -14,8 +14,6 @@ typedef struct {
 static list_t messages;
 static int errors, warnings;
 
-static message_t *create_message(char *);
-
 const char *token_t_to_str(token_type_t type) {
   switch (type) {
     case INVALID_TOK:
@@ -180,7 +178,10 @@ int warning_count(void) {
 void print_messages(FILE *out) {
   for (list_elem_t *e = list_begin(&messages); e != list_end(&messages);
       e = list_next(e)) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
     message_t *msg = list_entry(e, message_t, elem);
+#pragma GCC diagnostic pop
     fprintf(out, msg->str);
   }
 }
