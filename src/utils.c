@@ -1,7 +1,30 @@
 #include "utils.h"
+#include <string.h>
+
+options_t parse_options(int argc, char **argv) {
+  options_t opt = {0, 0, false, false};
+
+  for (int i = 1; i < argc; i++) {
+    if (argv[i][0] != '-') opt.input_file = argv[i];
+    else if (strcmp(argv[i], "--print-tokens") == 0) opt.print_tokens = true;
+    else if (strcmp(argv[i], "--print-ast") == 0) opt.print_ast = true;
+    else if (strcmp(argv[i], "-o") == 0) {
+      i++;
+      if (i < argc) {
+        opt.output_file = argv[i];
+      }
+    }
+  }
+
+  if (opt.output_file == 0) { // Default
+    opt.output_file = "out.s";
+  }
+
+  return opt;
+}
 
 void print_tokens(token_t *token) {
-  printf("Tokens:\n");
+  printf("Input tokens:\n");
 
   for(;token->type != PROGRAM_END_TOK; token++) {
     if (token->type == INT_LIT_TOK) {
