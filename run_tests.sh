@@ -1,11 +1,12 @@
 fail=0
 pass=0
 total=0
+comp="./bin/paola"
 
 run_test () {
   expect=`cat $test | sed -En 's/.*@EXPECT ([0-9]+)/\1/p'`
 
-  (./bin/awec $test > /dev/null)
+  ($comp $test > /dev/null)
 
   total=$((total+1))
   if [ $? -ne 0 ]; then

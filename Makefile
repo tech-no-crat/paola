@@ -8,9 +8,9 @@ SOURCE=./src/
 test: all
 	./run_tests.sh
 
-LIST= $(BIN)awec.o $(BIN)gen.o $(BIN)lexer.o $(BIN)parser.o $(BIN)semcheck.o $(BIN)list.o $(BIN)symtable.o $(BIN)errors.o
+LIST= $(BIN)paola.o $(BIN)gen.o $(BIN)lexer.o $(BIN)parser.o $(BIN)semcheck.o $(BIN)list.o $(BIN)symtable.o $(BIN)errors.o
 all: $(LIST)
-	$(CC) $(CFLAGS) -o $(BIN)awec $(LIST)
+	$(CC) $(CFLAGS) -o $(BIN)paola $(LIST)
 
 $(BIN)%.o: $(SOURCE)%.c $(SOURCE)%.h
 	$(CC) $(CFLAGS) $(SOURCE)$*.c -c -o $(BIN)$*.o
