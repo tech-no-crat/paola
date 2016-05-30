@@ -35,7 +35,6 @@ static bool is_term_binop(token_t *token);
 static bool is_expr_binop(token_t *token);
 static bool is_type_ident(token_t *token);
 static void match_token(token_type_t);
-static token_t *peek(void);
 
 static token_t *next_token;
 
@@ -248,11 +247,6 @@ static void match_token(token_type_t type) {
     error(&next_token->pos, "Expected token %s, but found token %s.",
         token_t_to_str(type), token_t_to_str(next_token->type));
   }
-}
-
-static token_t *peek(void) {
-  assert(next_token->type != PROGRAM_END_TOK);
-  return next_token + 1;
 }
 
 static bool is_factor_binop(token_t *token) {

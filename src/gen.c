@@ -194,6 +194,6 @@ static const char *next_reg_name(uint16_t regset) {
 
 static uint8_t next_reg_number(uint16_t regset) {
   assert(__builtin_popcount(regset) >= 1);
-  return (uint8_t) ffsl(regset);
+  return (uint8_t) __builtin_ffsl(regset);
 }
 

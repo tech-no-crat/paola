@@ -91,7 +91,7 @@ static datatype_t semcheck_expr(expr_ast_t *expr) {
     } default: {
       error(0, "Don't know how to semantically check expression %s.",
           expr_t_to_str(expr->type));
-      break;
+      return INVALID_DT;
     }
   }
 }

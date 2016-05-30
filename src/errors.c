@@ -178,10 +178,10 @@ int warning_count(void) {
 void print_messages(FILE *out) {
   for (list_elem_t *e = list_begin(&messages); e != list_end(&messages);
       e = list_next(e)) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat"
     message_t *msg = list_entry(e, message_t, elem);
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
     fprintf(out, msg->str);
+#pragma GCC diagnostic pop
   }
 }
