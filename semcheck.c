@@ -1,6 +1,9 @@
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
 #include "semcheck.h"
 #include "list.h"
 #include "symtable.h"
+#include "errors.h"
 
 static void semcheck_stat(stat_ast_t *);
 static datatype_t semcheck_expr(expr_ast_t *);
@@ -45,7 +48,7 @@ static void semcheck_stat(stat_ast_t *stat) {
     } case DECL_STAT: {
       symbol_t *symbol = symtable_find(stat->target);
       if (symbol) {
-        printf("Error: %s is already defined in this scope.\n", stat->target);
+        error(0, "%s is already defined in this scope.", stat->target);
         break;
       }
 
@@ -64,7 +67,8 @@ static void semcheck_stat(stat_ast_t *stat) {
       semcheck_expr(stat->expr);
       break;
     } default: {
-      printf("Error: Don't know how to semantically check statement %d.\n", stat->type);
+      error(0, "Don't know how to semantically check statement %s.",
+          stat_t_to_str(stat->type));
     }
   }
 }
@@ -80,12 +84,13 @@ static datatype_t semcheck_expr(expr_ast_t *expr) {
     } case VAR_REF: {
       symbol_t *symbol = symtable_find(expr->name);
       if (!symbol) {
-        printf("Error: Variable %s not defined in current scope.\n", expr->name);
+        error(0, "Variable %s not defined in current scope.", expr->name);
         return INVALID_DT;
       }
       return symbol->datatype;
     } default: {
-      printf("Error: Don't know how to semantically check expression %d.\n", expr->type);
+      error(0, "Don't know how to semantically check expression %s.",
+          expr_t_to_str(expr->type));
       break;
     }
   }
@@ -114,7 +119,7 @@ static datatype_t semcheck_binop(expr_ast_t *expr) {
       return INT_DT;
     } case ASSIGN: {
       if (is_const(expr->left)) {
-        printf("Error: Left assignment operand is constant.\n");
+        error(0, "Left assignment operand is constant.");
         return INVALID_DT;
       }
 
@@ -126,7 +131,8 @@ static datatype_t semcheck_binop(expr_ast_t *expr) {
 
       return left_type;
     } default: {
-      printf("Error: Don't know how to semantically check operator %d.\n", expr->op);
+      error(0, "Don't know how to semantically check operator %s.\n",
+          oper_to_str(expr->op));
       return INVALID_DT;
     }
   }
@@ -142,7 +148,8 @@ static void type_error(datatype_t expected, datatype_t actual, char const *desc)
     // we've already reported. Do not throw another error.
     return;
   }
-  printf("Type error: Expected type %d, but found type %d in %s.\n", expected, actual, desc);
+  error(0, "Expected type %s, but found type %s in %s.",
+      datatype_to_str(expected), datatype_to_str(actual), desc);
 }
 
 void init_semcheck() {

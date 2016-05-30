@@ -1,8 +1,11 @@
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
 #include "parser.h"
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "errors.h"
 
 static void init_parser(token_t *tokens);
 
@@ -90,7 +93,8 @@ stat_ast_t *parse_stat() {
       match_token(SCOL_TOK);
       break;
     default:
-      printf("Error: Expected start of statement, but found token %d\n", next_token->type);
+      error(&next_token->pos, "Expected start of statement, but found token %s.",
+          token_t_to_str(next_token->type));
       while (next_token->type != SCOL_TOK && next_token->type != PROGRAM_END_TOK) {
         match_token(next_token->type);
       }
@@ -163,7 +167,7 @@ static expr_ast_t *parse_variable_ref() {
 
 static expr_ast_t *parse_int_lit() {
   if (next_token->type != INT_LIT_TOK) {
-    printf ("Error: Expected integer literal.\n");
+    error(&next_token->pos, "Expected integer literal.");
     return create_invalid_expr();
   }
 
@@ -221,7 +225,7 @@ static operator_t match_binop(void) {
       match_token(EQ_TOK);
       return ASSIGN;
     default:
-      printf("Error: expected binary operator.\n");
+      error(&next_token->pos, "Expected binary operator.");
       return INVALID_OP;
   }
 }
@@ -230,7 +234,7 @@ static datatype_t match_datatype(token_t *token) {
   if (strcmp(next_token->name, "int") == 0) {
     return INT_DT;
   } else {
-    printf("Error: Unknown datatype '%s'\n", next_token->name);
+    error(&next_token->pos, "Expected datatype, found %s.", next_token->name);
     return INVALID_DT;
   }
 }
@@ -241,7 +245,8 @@ static void match_token(token_type_t type) {
       next_token++;
     }
   } else {
-    printf("Error: expected token %d, but found token %d.\n", type, next_token->type);
+    error(&next_token->pos, "Expected token %s, but found token %s.",
+        token_t_to_str(type), token_t_to_str(next_token->type));
   }
 }
 

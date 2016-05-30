@@ -1,12 +1,15 @@
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-
+#include "errors.h"
 #include "lexer.h"
 
 static token_t next_token(void);
 static token_t create_token(token_type_t);
+static position_t create_position(void);
 static token_t create_int_lit_token(int);
 static token_t create_identifier_token(char *);
 static bool is_digit(char);
@@ -20,11 +23,12 @@ static bool is_alphanumeric(char);
 static token_t create_ident_or_keyword_token(char *);
 static char *consume_string(void);
 
-static const int MAX_TOKENS = 1000; //TODO: We don't want this.
+static const int MAX_TOKENS = 10000; //TODO: We don't want this.
 static const int MAX_STRING_SIZE = 64; //TODO: We don't want this either.
 
 static char next_char; /* The next character to be tokenized. */
 static FILE *input;
+static int line, character;
 
 //TODO: Return a linked list (or resizable vector) of tokens
 token_t *tokenize(FILE *file) {
@@ -37,7 +41,11 @@ token_t *tokenize(FILE *file) {
     tokens[i] = next_token();
   } while (tokens[i++].type != PROGRAM_END_TOK);
 
-  return tokens;
+  token_t *ret = (token_t *) malloc(sizeof(token_t) * i);
+  memcpy(ret, tokens, sizeof(token_t) * i);
+  free(tokens);
+
+  return ret;
 }
 
 /* Consumes a character from the input file, and parses the token starting at
@@ -90,7 +98,8 @@ token_t next_token() {
         token = create_token(EQ_TOK);
         break;
       default:
-        printf("Warning: Unknown character %c (%d)\n", next_char, next_char);
+        position_t pos = create_position();
+        warning(&pos, "Unknown token %c (%d)\n", next_char, next_char);
         token = create_token(INVALID_TOK);
         break;
     }
@@ -104,12 +113,20 @@ token_t next_token() {
 static token_t create_token(token_type_t type) {
   token_t token;
   token.type = type;
+  token.pos = create_position();
 
   return token;
 }
 
+static position_t create_position() {
+  position_t pos;
+  pos.line = line;
+  pos.character = character;
+  return pos;
+}
+
 static token_t create_int_lit_token(int val) {
-  token_t token;
+  token_t token = create_token(INT_LIT_TOK);
   token.type = INT_LIT_TOK;
   token.ival = val;
 
@@ -137,6 +154,7 @@ static int consume_int_literal(void) {
 
 /* Takes a single char from the input file and stores it in next_char. */
 static void consume_char(void) {
+  character++;
   next_char = fgetc(input);
 }
 
@@ -145,6 +163,10 @@ static void consume_char(void) {
  * non-whitespace character.  */
 static void skip_whitespace(void) {
   while (is_whitespace(next_char)) {
+    if (next_char == '\n') {
+      character = 1;
+      line++;
+    }
     consume_char();
   }
 }
@@ -186,8 +208,7 @@ static token_t create_ident_or_keyword_token(char *str) {
 }
 
 static token_t create_identifier_token(char *str) {
-  token_t token;
-  token.type = IDENT_TOK;
+  token_t token = create_token(IDENT_TOK);
   token.name = str;
 
   return token;
@@ -196,5 +217,7 @@ static token_t create_identifier_token(char *str) {
 static void init_tokenizer(FILE *file) {
   input = file;
   next_char = 0;
+  line = 1;
+  character = 1;
   consume_char();
 }

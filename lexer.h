@@ -23,8 +23,14 @@ typedef enum {
   EQ_TOK
 } token_type_t;
 
+typedef struct {
+  int line;
+  int character;
+} position_t;
+
 typedef struct token {
   token_type_t type;
+  position_t pos;
   union {
     int ival;
     char *name;

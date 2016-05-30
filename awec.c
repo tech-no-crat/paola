@@ -1,96 +1,25 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "gen.h"
 #include "lexer.h"
 #include "parser.h"
 #include "semcheck.h"
+#include "errors.h"
 
 void print_tokens(token_t *token) {
   printf("Tokens:\n");
 
   for(;token->type != PROGRAM_END_TOK; token++) {
-    switch (token->type) {
-      case INVALID_TOK:
-        printf("[INVALID] ");
-      case LPAREN_TOK:
-        printf("[LPAREN] ");
-        break;
-      case RPAREN_TOK:
-        printf("[RPAREN] ");
-        break;
-      case PLUS_TOK:
-        printf("[PLUS] ");
-        break;
-      case STAR_TOK:
-        printf("[STAR] ");
-        break;
-      case FSLASH_TOK:
-        printf("[FSLASH] ");
-        break;
-      case MINUS_TOK:
-        printf("[MINUS] ");
-        break;
-      case RETURN_TOK:
-        printf("[RETURN] ");
-        break;
-      case SCOL_TOK:
-        printf("[SCOL] ");
-        break;
-      case IDENT_TOK:
-        printf("[IDENT %s] ", token->name);
-        break;
-      case INT_LIT_TOK:
-        printf("[INT_LIT %d] ", token->ival);
-        break;
-      case LBRACE_TOK:
-        printf("[LBRACE] ");
-        break;
-      case RBRACE_TOK:
-        printf("[RBRACE] ");
-        break;
-      case IF_TOK:
-        printf("[IF] ");
-        break;
-      case ELSE_TOK:
-        printf("[ELSE] ");
-        break;
-      case EQ_TOK:
-        printf("[EQ] ");
-        break;
-      default:
-        printf("[?UNKNOWN?] ");
-        break;
+    if (token->type == INT_LIT_TOK) {
+      printf("[%s %d]", token_t_to_str(token->type), token->ival);
+    } else if(token->type == IDENT_TOK) {
+      printf("[%s %s]", token_t_to_str(token->type), token->name);
+    } else {
+      printf("[%s]", token_t_to_str(token->type));
     }
   }
 
   printf("\n");
-}
-
-char binop_char(operator_t op) {
-  switch (op) {
-    case ADD:
-      return '+';
-    case SUBS:
-      return '-';
-    case MUL:
-      return '*';
-    case DIV:
-      return '/';
-    case ASSIGN:
-      return '=';
-    default:
-      return '?';
-  }
-}
-
-char *datatype_string(datatype_t datatype) {
-  switch (datatype) {
-    case INVALID_DT:
-      return "INVALID_TYPE";
-    case INT_DT:
-      return "INT_TYPE";
-    default:
-      return "UNKNOWN_TYPE";
-  }
 }
 
 void print_expr_ast(expr_ast_t *ast) {
@@ -106,7 +35,7 @@ void print_expr_ast(expr_ast_t *ast) {
       printf("IntLit(%d)", ast->ival);
       break;
     case BIN_OP:
-      printf("BinOp(%c, ", binop_char(ast->op));
+      printf("BinOp(%s, ", oper_to_str(ast->op));
       print_expr_ast(ast->left);
       printf(", ");
       print_expr_ast(ast->right);
@@ -160,7 +89,7 @@ void print_stat_ast(stat_ast_t *ast) {
       printf(")");
       break;
     case DECL_STAT:
-      printf("Declaration(%s, %s, ", datatype_string(ast->datatype), ast->target);
+      printf("Declaration(%s, %s, ", datatype_to_str(ast->datatype), ast->target);
       if (ast->value) {
         print_expr_ast(ast->value);
       } else {
@@ -174,22 +103,39 @@ void print_stat_ast(stat_ast_t *ast) {
   }
 }
 
+void if_errors_exit() {
+  if (error_count() > 0) {
+    print_messages(stdout);
+    exit(-1);
+  }
+}
 
 int main () {
   FILE *fin = fopen("test.c", "r");
+  errors_init();
 
   token_t *tokens = tokenize(fin);
   print_tokens(tokens);
-  
+
+  if_errors_exit();
+
   stat_ast_t *ast = parse(tokens);
-  printf("Parsed\n");
+
+  if_errors_exit();
+
   print_stat_ast(ast);
   printf("\n");
 
   semcheck(ast);
 
+  if_errors_exit();
+
   FILE *fout = fopen("out.s", "w");
   generate_code(fout, ast);
+
+  if_errors_exit();
+
+  print_messages(stdout); // Maybe we have warnings
 
   return 0;
 }

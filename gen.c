@@ -1,9 +1,12 @@
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
 #include "gen.h"
 #include "symtable.h"
+#include "errors.h"
 
 static void generate_statement(stat_ast_t *, uint16_t);
 static void generate_expression(expr_ast_t *, uint16_t);
@@ -92,7 +95,8 @@ static void generate_statement(stat_ast_t *stat, uint16_t regset) {
       generate_expression(stat->expr, regset);
       break;
     } default:
-      printf("Error: Don't know how to generate code for statement %d.\n", stat->type);
+      error(0, "Don't know how to generate code for statement %s.\n",
+          stat_t_to_str(stat->type));
       break;
   }
 }
@@ -109,7 +113,8 @@ static void generate_expression(expr_ast_t *expr, uint16_t regset) {
       generate_var_ref(expr, regset);
       break;
     default:
-      printf("Error: Don't know how to generate code for expression.\n");
+      error(0, "Don't know how to generate code for expression %s.",
+          expr_t_to_str(expr->type));
       break;
   };
 }
@@ -158,8 +163,8 @@ static void generate_binop(expr_ast_t *expr, uint16_t regset) {
       fprintf(out, "\tmovq %%%s, (%%%s)\n", right_reg, left_reg);
       break;
     } default:
-      printf("Error: Don't know how to translate code for unknown \
-          binary operator\n");
+      error(0, "Don't know how to translate code for binary operator %s.",
+          oper_to_str(expr->op));
       break;
   }
 }
