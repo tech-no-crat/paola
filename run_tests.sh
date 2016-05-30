@@ -3,6 +3,10 @@ pass=0
 total=0
 comp="./bin/paola"
 
+REDCOL='\033[0;31m'
+GREENCOL='\033[0;32m'
+NOCOL='\033[0m'
+
 run_test () {
   expect=`cat $test | sed -En 's/.*@EXPECT ([0-9]+)/\1/p'`
 
@@ -10,7 +14,8 @@ run_test () {
 
   total=$((total+1))
   if [ $? -ne 0 ]; then
-    echo "FAIL $test: Compilation returned non-zero exit status $?."
+    echo "$REDCOL FAIL$NOCOL $test:\n\tCompilation returned non-zero exit status $?."
+
     fail=$((fail+1))
     return;
   fi
@@ -19,10 +24,10 @@ run_test () {
   (./out)
   actual=$?
   if [ $actual -ne $expect ]; then
-    echo "FAIL $test: Expected $expect, got $actual"
+    echo "$REDCOL FAIL$NOCOL $test:\n\tExpected $expect, got $actual."
     fail=$((fail+1))
   else
-    echo "PASS $test"
+    echo "$GREENCOL PASS$NOCOL $test "
     pass=$((pass+1))
   fi
 }
@@ -35,4 +40,10 @@ rm -f out.s
 rm -f out
 
 echo ""
-echo "PASS $pass/$total"
+if [ $pass -eq $total ]; then
+  echo "$GREENCOL PASS $pass/$total $NOCOL"
+  exit 0
+else
+  echo "$REDCOL PASS $pass/$total $NOCOL"
+  exit 1
+fi
