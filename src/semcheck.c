@@ -38,6 +38,14 @@ static void semcheck_stat(stat_ast_t *stat) {
         semcheck_stat(stat->fstat);
       }
       break;
+    } case WHILE_STAT: {
+      datatype_t condition_type = semcheck_expr(stat->cond);
+      if (condition_type != INT_DT) {
+        type_error(INT_DT, condition_type, "while condition expression");
+      }
+
+      semcheck_stat(stat->body);
+      break;
     } case BLOCK_STAT: {
       for (list_elem_t *e = list_begin(&(stat->stats)); e != list_end(&(stat->stats));
           e = list_next(e)) {

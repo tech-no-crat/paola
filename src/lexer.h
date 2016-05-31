@@ -17,6 +17,7 @@ typedef enum {
   RBRACE_TOK,
   RETURN_TOK,
   IF_TOK,
+  WHILE_TOK,
   ELSE_TOK,
   IDENT_TOK,
   SCOL_TOK,

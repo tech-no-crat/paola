@@ -2,6 +2,7 @@
 *.out
 *.s
 *.swp
+.gdb_history
 out
 awec
 test.c

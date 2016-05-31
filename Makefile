@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -m64 -std=c11 -Wall -Werror -pedantic
+CFLAGS= -m64 -std=c11 -Wall -Werror -pedantic -ggdb
 BIN=./bin/
 SOURCE=./src/
 .PHONY: clean

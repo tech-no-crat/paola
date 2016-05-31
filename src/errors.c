@@ -44,6 +44,8 @@ const char *token_t_to_str(token_type_t type) {
       return "RBRACE";
     case IF_TOK:
       return "IF";
+    case WHILE_TOK:
+      return "WHILE";
     case ELSE_TOK:
       return "ELSE";
     case EQ_TOK:
@@ -88,6 +90,8 @@ const char *stat_t_to_str(stat_ast_type_t stat_type) {
       return "ReturnStatement";
     case IF_STAT:
       return "IfStatement";
+    case WHILE_STAT:
+      return "WhileStatement";
     case BLOCK_STAT:
       return "BlockStatement";
     case EXPR_STAT:

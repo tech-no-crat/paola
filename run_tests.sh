@@ -15,7 +15,6 @@ run_test () {
   compstatus=$?
   if [ $compstatus -ne 0 ]; then
     echo "$REDCOL FAIL$NOCOL $test:\n\tCompilation returned non-zero exit status $compstatus."
-
     fail=$((fail+1))
     return;
   fi
