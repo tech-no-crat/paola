@@ -9,12 +9,12 @@ NOCOL='\033[0m'
 
 run_test () {
   expect=`cat $test | sed -En 's/.*@EXPECT ([0-9]+)/\1/p'`
+  total=$((total+1))
 
   ($comp $test > /dev/null)
-
-  total=$((total+1))
-  if [ $? -ne 0 ]; then
-    echo "$REDCOL FAIL$NOCOL $test:\n\tCompilation returned non-zero exit status $?."
+  compstatus=$?
+  if [ $compstatus -ne 0 ]; then
+    echo "$REDCOL FAIL$NOCOL $test:\n\tCompilation returned non-zero exit status $compstatus."
 
     fail=$((fail+1))
     return;
