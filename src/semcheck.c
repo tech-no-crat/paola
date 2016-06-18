@@ -46,6 +46,16 @@ static void semcheck_stat(stat_ast_t *stat) {
 
       semcheck_stat(stat->body);
       break;
+    } case FOR_STAT: {
+      datatype_t condition_type = semcheck_expr(stat->cond);
+      if (condition_type != INT_DT) {
+        type_error(INT_DT, condition_type, "for condition expression");
+      }
+
+      semcheck_expr(stat->init);
+      semcheck_expr(stat->iter);
+      semcheck_stat(stat->body);
+      break;
     } case BLOCK_STAT: {
       for (list_elem_t *e = list_begin(&(stat->stats)); e != list_end(&(stat->stats));
           e = list_next(e)) {

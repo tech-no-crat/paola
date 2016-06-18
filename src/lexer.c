@@ -231,6 +231,9 @@ static token_t create_ident_or_keyword_token(char *str) {
   } else if (strcmp("while", str) == 0) {
     free(str);
     return create_token(WHILE_TOK);
+  } else if (strcmp("for", str) == 0) {
+    free(str);
+    return create_token(FOR_TOK);
   } else if (strcmp("else", str) == 0) {
     free(str);
     return create_token(ELSE_TOK);

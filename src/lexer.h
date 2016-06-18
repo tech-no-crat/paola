@@ -18,6 +18,7 @@ typedef enum {
   RETURN_TOK,
   IF_TOK,
   WHILE_TOK,
+  FOR_TOK,
   ELSE_TOK,
   IDENT_TOK,
   SCOL_TOK,

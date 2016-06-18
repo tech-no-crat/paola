@@ -7,7 +7,7 @@
 #include "errors.h"
 #include "utils.h"
 
-enum { // Different exit codes denote different error type
+enum { // Different exit codes denote different error types
   OTHER_ERR = 1,
   LEXER_ERR,
   PARSE_ERR,

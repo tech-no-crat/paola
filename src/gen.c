@@ -8,23 +8,13 @@
 #include "symtable.h"
 #include "errors.h"
 
-static void generate_statement(stat_ast_t *, uint16_t);
-static void generate_expression(expr_ast_t *, uint16_t);
-static void generate_var_ref(expr_ast_t *expr, uint16_t regset);
-static void generate_binop(expr_ast_t *, uint16_t);
-static void generate_int_lit(expr_ast_t *, uint16_t);
-static void init_gen(FILE *file);
-static int get_label(void);
-static uint16_t consume_reg(uint16_t);
-static uint8_t next_reg_number(uint16_t);
-static const char *next_reg_name(uint16_t);
-
-static FILE *out;
-static int next_label;
-static int next_stack_offset;
+/* A Register Set, or RegSet, is represented with a 16-bit number where
+ * the i-th bit is on iff the i-th register is available (for i in
+ * the range [0, register_count]). */
+typedef int16_t regset_t;
 
 static const uint8_t register_count = 11;
-static const uint16_t initial_regset = (1 << 11) - 1; // All registers
+static const regset_t initial_regset = (1 << 11) - 1; // All registers
 static const char *register_names[11] = {
   "rax",
   "rbx",
@@ -40,14 +30,79 @@ static const char *register_names[11] = {
   "r15"
 };
 
+static FILE *out;
+static int next_label;
+static int next_stack_offset;
+
+/* A struct representing x86 command arguments. Instances of this struct can be
+ * constructed with methods below. */
+typedef struct {
+  enum arg_type_t {
+    LIT_ARG,
+    REG_ARG,
+    MEM_ARG
+  } type;
+
+  union {
+    int32_t lit;
+    struct {
+      const char *reg;
+      int32_t offset;
+    };
+  };
+} arg_t;
+
+static void init_gen(FILE *);
+
+/* Recursive code generators. */
+static void generate_statement(stat_ast_t *, regset_t);
+static void generate_expression(expr_ast_t *, regset_t);
+static void generate_var_ref(expr_ast_t *, regset_t);
+static void generate_binop(expr_ast_t *, regset_t);
+static void generate_int_lit(expr_ast_t *, regset_t);
+
+/* Gets the number of the next unused label. The full name of the labels shall
+ * be lX, where X is the numbers this function returns. */
+static int get_label(void);
+
+/* Register set manipulation and access functions. */
+static regset_t consume_reg(regset_t);
+static uint8_t next_reg_number(regset_t);
+static const char *next_reg_name(regset_t);
+
+/* Constructors for x86 command argument struct instances. They return copies
+ * of the constructed structs, because these structs have very short
+ * lifespans. */
+static arg_t arg_lit(int32_t);
+static arg_t arg_reg(const char *);
+static arg_t arg_mem(const char *, uint32_t);
+
+/* Helper functions for generating instructions. */
+static void gen_arg(arg_t arg);
+static void two_arg_command(const char *command, arg_t src, arg_t dst);
+
+/* Functions that generate x86 commands. */
+static void mov(arg_t, arg_t);
+static void add(arg_t, arg_t);
+static void idiv(arg_t, arg_t);
+static void imul(arg_t, arg_t);
+static void sub(arg_t, arg_t);
+static void cmp(arg_t, arg_t);
+static void jne(int32_t);
+static void je(int32_t);
+static void jmp(int32_t);
+static void label(int32_t );
+static void ret(void);
+
 void generate_code(FILE *file, stat_ast_t *ast) {
   init_gen(file);
 
-  fprintf(out, "\t.text\n\t.globl main\nmain:\n");
+  /* TODO: The name of the main function is platform specific. */
+  fprintf(out, "\t.text\n\t.globl _main\n_main:\n");
   generate_statement(ast, initial_regset);
 }
 
-static void generate_statement(stat_ast_t *stat, uint16_t regset) {
+static void generate_statement(stat_ast_t *stat, regset_t regset) {
   switch (stat->type) {
     case RETURN_STAT: {
       /* Generate code that will calculate the result of the expression to the
@@ -57,34 +112,61 @@ static void generate_statement(stat_ast_t *stat, uint16_t regset) {
       /* Copy the result to rax and return. */
       const char *result_reg = next_reg_name(regset);
       if (strcmp(result_reg, "rax") != 0) {
-        fprintf(out, "\tmov %%%s %%rax\n", result_reg);
+        mov(
+          arg_reg(result_reg),
+          arg_reg("rax")
+        );
       }
 
-      fprintf(out, "\tret\n");
+      ret();
       break;
     } case IF_STAT: {
-      int label = get_label();
+      int flabel = get_label();
       const char *cond_reg = next_reg_name(regset);
       generate_expression(stat->expr, regset);
-      fprintf(out, "\tcmpq $0, %%%s\n\tje l%d\n", cond_reg, label);
+
+      cmp(
+        arg_lit(0),
+        arg_reg(cond_reg)
+      );
+      je(flabel);
 
       generate_statement(stat->tstat, regset);
-      fprintf(out, "l%d:\n", label);
 
+      label(flabel);
       if (stat->fstat) {
         generate_statement(stat->fstat, regset);
       }
       break;
     } case WHILE_STAT: {
       int cond_label = get_label(), body_label = get_label();
+      jmp(cond_label);
+
+      label(body_label);
+      generate_statement(stat->body, regset);
+
+      label(cond_label);
+      const char *cond_reg = next_reg_name(regset);
+      generate_expression(stat->expr, regset);
+
+      cmp(
+        arg_lit(0),
+        arg_reg(cond_reg)
+      );
+      jne(body_label);
+      break;
+    } case FOR_STAT: {
+      generate_expression(stat->init, regset);
+
+      int cond_label = get_label(), body_label = get_label();
       fprintf(out, "\tjmp l%d\n", cond_label);
 
       fprintf(out, "l%d:\n", body_label);
       generate_statement(stat->body, regset);
+      generate_expression(stat->iter, regset);
 
       fprintf(out, "l%d:\n", cond_label);
       const char *cond_reg = next_reg_name(regset);
-      generate_expression(stat->expr, regset);
       fprintf(out, "\tcmpq $0, %%%s\n\tjne l%d\n", cond_reg, body_label);
       break;
     } case BLOCK_STAT: {
@@ -113,7 +195,7 @@ static void generate_statement(stat_ast_t *stat, uint16_t regset) {
   }
 }
 
-static void generate_expression(expr_ast_t *expr, uint16_t regset) {
+static void generate_expression(expr_ast_t *expr, regset_t regset) {
   switch (expr->type) {
     case BIN_OP:
       generate_binop(expr, regset);
@@ -131,23 +213,31 @@ static void generate_expression(expr_ast_t *expr, uint16_t regset) {
   };
 }
 
-static void generate_var_ref(expr_ast_t *expr, uint16_t regset) {
+static void generate_var_ref(expr_ast_t *expr, regset_t regset) {
   symbol_t *symbol = symtable_find(expr->name);
   assert(symbol != 0);
   assert(symbol->datatype == INT_DT);
   
   if (expr->assign) { // Leave the address at the destination register
     const char *dst = next_reg_name(regset);
-    fprintf(out, "\tmovq $-%d, %%%s\n", symbol->stack_offset, dst); // - stack offset -> dst
-    fprintf(out, "\taddq %%rsp, %%%s\n", dst); // dst = dst + stack pointer
+    mov(
+      arg_lit(-symbol->stack_offset),
+      arg_reg(dst)
+    );
+
+    add(
+      arg_reg("rsp"),
+      arg_reg(dst)
+    );
   } else { // Leave the value at the destination register
-    const char *dst = next_reg_name(regset);
-    
-    fprintf(out, "\tmovq -%d(%%rsp), %%%s\n", symbol->stack_offset, dst);
+    mov(
+      arg_mem("rsp", -symbol->stack_offset),
+      arg_reg(next_reg_name(regset))
+    );
   }
 }
 
-static void generate_binop(expr_ast_t *expr, uint16_t regset) {
+static void generate_binop(expr_ast_t *expr, regset_t regset) {
   const char *left_reg = next_reg_name(regset);
   generate_expression(expr->left, regset);
   regset = consume_reg(regset);
@@ -157,22 +247,34 @@ static void generate_binop(expr_ast_t *expr, uint16_t regset) {
 
   switch (expr->op) {
     case ADD:
-      fprintf(out, "\taddq %%%s, %%%s\n", right_reg, left_reg);
+      add(arg_reg(right_reg), arg_reg(left_reg));
       break;
     case SUBS:
-      fprintf(out, "\tsubq %%%s, %%%s\n", right_reg, left_reg);
+      sub(arg_reg(right_reg), arg_reg(left_reg));
       break;
     case DIV:
       /* When dividing rdx and rax are concatinated, so we need to zero rdx
        * first. */
-      fprintf(out, "\tmov $0, %%rdx\n");
-      fprintf(out, "\tidivq %%%s, %%%s\n", right_reg, left_reg);
+      mov(
+        arg_lit(0),
+        arg_reg("rdx")
+      );
+      idiv(
+        arg_reg(right_reg),
+        arg_reg(left_reg)
+      );
       break;
     case MUL:
-      fprintf(out, "\timulq %%%s, %%%s\n", right_reg, left_reg);
+      imul(
+        arg_reg(right_reg),
+        arg_reg(left_reg)
+      );
       break;
     case ASSIGN: {
-      fprintf(out, "\tmovq %%%s, (%%%s)\n", right_reg, left_reg);
+      mov(
+        arg_reg(right_reg),
+        arg_mem(left_reg, 0)
+      );
       break;
     } default:
       error(0, "Don't know how to translate code for binary operator %s.",
@@ -181,9 +283,11 @@ static void generate_binop(expr_ast_t *expr, uint16_t regset) {
   }
 }
 
-static void generate_int_lit(expr_ast_t *expr, uint16_t regset) {
-  const char *reg = next_reg_name(regset);
-  fprintf(out, "\tmovq $%d, %%%s\n", expr->ival, reg);
+static void generate_int_lit(expr_ast_t *expr, regset_t regset) {
+  mov(
+    arg_lit(expr->ival),
+    arg_reg(next_reg_name(regset))
+  );
 }
 
 static int get_label() {
@@ -196,16 +300,108 @@ static void init_gen(FILE *file) {
   next_stack_offset = 8;
 }
 
-static uint16_t consume_reg(uint16_t regset) {
+static regset_t consume_reg(regset_t regset) {
   return regset & (~(1 << (next_reg_number(regset) - 1)));
 }
 
-static const char *next_reg_name(uint16_t regset) {
+static const char *next_reg_name(regset_t regset) {
   return register_names[next_reg_number(regset) - 1];
 }
 
-static uint8_t next_reg_number(uint16_t regset) {
+static uint8_t next_reg_number(regset_t regset) {
   assert(__builtin_popcount(regset) >= 1);
   return (uint8_t) __builtin_ffsl(regset);
 }
 
+static arg_t arg_lit(int32_t lit) {
+  arg_t arg;
+  arg.type = LIT_ARG;
+  arg.lit = lit;
+  return arg;
+}
+
+static arg_t arg_reg(const char *reg) {
+  arg_t arg;
+  arg.type = REG_ARG;
+  arg.reg = reg;
+  return arg;
+}
+
+static arg_t arg_mem(const char *reg, uint32_t offset) {
+  arg_t arg;
+  arg.type = MEM_ARG;
+  arg.reg = reg;
+  arg.offset = offset;
+  return arg;
+}
+
+static void gen_arg(arg_t arg) {
+  switch(arg.type) {
+    case LIT_ARG:
+      fprintf(out, "$%d", arg.lit);
+      break;
+    case REG_ARG:
+      fprintf(out, "%%%s", arg.reg); 
+      break;
+    case MEM_ARG:
+      if (arg.offset) {
+        fprintf(out, "%d", arg.offset);
+      }
+      fprintf(out, "(%%%s)", arg.reg); 
+      break;
+    default:
+      error(0, "Don't know how to generate code for argument type %d.\n", arg.type);
+  }
+}
+
+static void two_arg_command(const char *command, arg_t src, arg_t dst) {
+  fprintf(out, "\t%s ", command);
+  gen_arg(src);
+  fprintf(out, ", ");
+  gen_arg(dst);
+  fprintf(out, "\n");
+}
+
+static void mov(arg_t src, arg_t dst) {
+  two_arg_command("mov", src, dst);
+}
+
+static void add(arg_t src, arg_t dst) {
+  two_arg_command("add", src, dst);
+}
+
+static void sub(arg_t src, arg_t dst) {
+  two_arg_command("sub", src, dst);
+}
+
+static void imul(arg_t src, arg_t dst) {
+  two_arg_command("imul", src, dst);
+}
+
+static void idiv(arg_t src, arg_t dst) {
+  two_arg_command("idiv", src, dst);
+}
+
+static void cmp(arg_t src, arg_t dst) {
+  two_arg_command("cmp", src, dst);
+}
+
+static void jne(int32_t label_id) {
+  fprintf(out, "\tjne l%d\n", label_id);
+}
+
+static void je(int32_t label_id) {
+  fprintf(out, "\tje l%d\n", label_id);
+}
+
+static void jmp(int32_t label_id) {
+  fprintf(out, "\tjmp l%d\n", label_id);
+}
+
+static void ret(void) {
+  fprintf(out, "\tret\n");
+}
+
+static void label(int32_t label_id) {
+  fprintf(out, "l%d:\n", label_id);
+}
