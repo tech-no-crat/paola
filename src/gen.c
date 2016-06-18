@@ -87,6 +87,20 @@ static void generate_statement(stat_ast_t *stat, uint16_t regset) {
       generate_expression(stat->expr, regset);
       fprintf(out, "\tcmpq $0, %%%s\n\tjne l%d\n", cond_reg, body_label);
       break;
+    } case FOR_STAT: {
+      generate_expression(stat->init, regset);
+
+      int cond_label = get_label(), body_label = get_label();
+      fprintf(out, "\tjmp l%d\n", cond_label);
+
+      fprintf(out, "l%d:\n", body_label);
+      generate_statement(stat->body, regset);
+      generate_expression(stat->iter, regset);
+
+      fprintf(out, "l%d:\n", cond_label);
+      const char *cond_reg = next_reg_name(regset);
+      fprintf(out, "\tcmpq $0, %%%s\n\tjne l%d\n", cond_reg, body_label);
+      break;
     } case BLOCK_STAT: {
       for (list_elem_t *e = list_begin(&(stat->stats)); e != list_end(&(stat->stats));
           e = list_next(e)) {

@@ -46,6 +46,8 @@ const char *token_t_to_str(token_type_t type) {
       return "IF";
     case WHILE_TOK:
       return "WHILE";
+    case FOR_TOK:
+      return "FOR";
     case ELSE_TOK:
       return "ELSE";
     case EQ_TOK:
@@ -92,6 +94,8 @@ const char *stat_t_to_str(stat_ast_type_t stat_type) {
       return "IfStatement";
     case WHILE_STAT:
       return "WhileStatement";
+    case FOR_STAT:
+      return "ForStatement";
     case BLOCK_STAT:
       return "BlockStatement";
     case EXPR_STAT:

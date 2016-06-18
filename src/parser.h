@@ -20,6 +20,7 @@ typedef enum {
   RETURN_STAT,
   IF_STAT,
   WHILE_STAT,
+  FOR_STAT,
   BLOCK_STAT,
   DECL_STAT,
   EXPR_STAT
@@ -54,14 +55,18 @@ typedef struct stat_ast_type {
   union {
     expr_ast_t *expr; // RETURN_STAT, EXPR_STAT
 
-    struct {
-      expr_ast_t *cond; // IF_STAT, WHILE_STAT
-      struct { // IF_STAT
-        struct stat_ast_type *tstat, *fstat;
-      };
+    struct { // IF_STAT, WHILE_STAT, FOR_STAT
+      expr_ast_t *cond; // IF_STAT, WHILE_STAT, FOR_STAT
+      struct stat_ast_type *body; // IF_STAT, WHILE_STAT, FOR_STAT
 
-      struct { // WHILE_STAT
-        struct stat_ast_type *body;
+      union {
+        struct { // IF_STAT
+          struct stat_ast_type *tstat, *fstat;
+        };
+
+        struct { // FOR_STAT
+          expr_ast_t *init, *iter;
+        };
       };
     };
 

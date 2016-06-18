@@ -25,6 +25,8 @@ static stat_ast_t *create_invalid_stat(void);
 static stat_ast_t *create_block_stat(void);
 static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
 static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *stat);
+static stat_ast_t *create_for_stat(expr_ast_t *, expr_ast_t *, expr_ast_t *, stat_ast_t *);
+
 static expr_ast_t *create_variable_ref(char *);
 static stat_ast_t *create_declaration(datatype_t, char *, expr_ast_t *);
 static stat_ast_t *create_expr_statement(expr_ast_t *);
@@ -76,6 +78,23 @@ stat_ast_t *parse_stat() {
       stat_ast_t *body = parse_stat();
 
       stat = create_while_stat(cond, body);
+      break;
+    } case FOR_TOK: {
+      match_token(FOR_TOK);
+      match_token(LPAREN_TOK);
+
+      expr_ast_t *init = parse_expr();
+      match_token(SCOL_TOK);
+
+      expr_ast_t *cond = parse_expr();
+      match_token(SCOL_TOK);
+
+      expr_ast_t *iter = parse_expr();
+      match_token(RPAREN_TOK);
+
+      stat_ast_t *body = parse_stat();
+      
+      stat = create_for_stat(init, cond, iter, body);
       break;
     } case LBRACE_TOK:
       match_token(LBRACE_TOK);
@@ -319,6 +338,18 @@ static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *body) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = WHILE_STAT;
   stat->cond = cond;
+  stat->body = body;
+
+  return stat;
+}
+
+static stat_ast_t *create_for_stat(expr_ast_t *init, expr_ast_t *cond,
+    expr_ast_t *iter, stat_ast_t *body) {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = FOR_STAT;
+  stat->init = init;
+  stat->cond = cond;
+  stat->iter = iter;
   stat->body = body;
 
   return stat;
