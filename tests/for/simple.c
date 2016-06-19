@@ -1,15 +1,13 @@
 // @COMPILE OK
-// @EXPECT 120
-// Computes 5! = 120
+// @EXPECT 10
 {
   int i;
-  int result;
+  int sum;
+  sum = 0;
 
-  i = 42;
-  result = 1;
-  for (i = 5; i; i = i - 1) {
-    if (i) result = result * i;
+  for (i = 10; i; i = i - 1) {
+    sum = sum + 1;
   }
 
-  return result;
+  return sum;
 }
