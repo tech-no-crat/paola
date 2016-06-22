@@ -21,7 +21,7 @@ run_test () {
 
   g++ out.s -o out
   assemblestatus=$?
-  if [ $assemblestatus -ne 0 ]; then
+  if [ "$assemblestatus" -ne 0 ]; then
     echo "$REDCOL FAIL$NOCOL $test:\n\tAssembling returned non-zero exit status $assemblestatus."
     fail=$((fail+1))
     return;
@@ -29,7 +29,7 @@ run_test () {
 
   (./out)
   actual=$?
-  if [ $actual -ne $expect ]; then
+  if [ "$actual" -ne "$expect" ]; then
     echo "$REDCOL FAIL$NOCOL $test:\n\tExpected $expect, got $actual."
     fail=$((fail+1))
   else

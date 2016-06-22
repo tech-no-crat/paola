@@ -22,7 +22,12 @@ typedef enum {
   ELSE_TOK,
   IDENT_TOK,
   SCOL_TOK,
-  EQ_TOK
+  ASSIGN_TOK,
+  EQ_TOK,
+  GT_TOK,
+  GTE_TOK,
+  LT_TOK,
+  LTE_TOK
 } token_type_t;
 
 typedef struct {

@@ -1,4 +1,4 @@
-CC=gcc
+CC=gcc-4.9
 CFLAGS= -m64 -std=c11 -Wall -Werror -pedantic -ggdb
 BIN=./bin/
 SOURCE=./src/

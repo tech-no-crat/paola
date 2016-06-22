@@ -32,7 +32,12 @@ typedef enum {
   SUBS,
   MUL,
   DIV,
-  ASSIGN
+  ASSIGN,
+  EQ,
+  GT,
+  GTE,
+  LT,
+  LTE
 } operator_t;
 
 typedef struct expr_ast_type {
@@ -47,7 +52,6 @@ typedef struct expr_ast_type {
     char *name; // VAR_REF
   };
 } expr_ast_t;
-
 
 typedef struct stat_ast_type {
   stat_ast_type_t type;

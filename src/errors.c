@@ -50,8 +50,18 @@ const char *token_t_to_str(token_type_t type) {
       return "FOR";
     case ELSE_TOK:
       return "ELSE";
+    case ASSIGN_TOK:
+      return "ASSIGN";
     case EQ_TOK:
       return "EQ";
+    case GT_TOK:
+      return "GT";
+    case GTE_TOK:
+      return "GTE";
+    case LT_TOK:
+      return "LT";
+    case LTE_TOK:
+      return "LTE";
     default:
       return "UNKNOWN";
   }
@@ -68,8 +78,18 @@ const char *oper_to_str(operator_t op) {
       return "/";
     case ASSIGN:
       return "=";
+    case EQ:
+      return "==";
+    case GT:
+      return ">";
+    case GTE:
+      return ">=";
+    case LT:
+      return "<";
+    case LTE:
+      return "<=";
     default:
-      return "?";
+      return "UNKNOWN";
   }
 }
 

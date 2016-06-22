@@ -148,6 +148,18 @@ static datatype_t semcheck_binop(expr_ast_t *expr) {
       }
 
       return left_type;
+    } case EQ:
+      case GT:
+      case GTE:
+      case LT:
+      case LTE: {
+      datatype_t left_type = semcheck_expr(expr->left);
+      datatype_t right_type = semcheck_expr(expr->right);
+      if (left_type != right_type) {
+        type_error(left_type, right_type, "comparison operator");
+      }
+
+      return INT_DT;
     } default: {
       error(0, "Don't know how to semantically check operator %s.\n",
           oper_to_str(expr->op));

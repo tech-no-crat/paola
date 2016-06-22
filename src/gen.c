@@ -16,10 +16,9 @@ typedef int16_t regset_t;
 static const uint8_t register_count = 11;
 static const regset_t initial_regset = (1 << 11) - 1; // All registers
 static const char *register_names[11] = {
-  "rax",
+  // We don't use rax and rdx because it's used in division (TODO)
   "rbx",
   "rcx",
-  // We don't use rdx because it's sometimes used in division (TODO)
   "r8",
   "r9",
   "r10",
@@ -83,6 +82,7 @@ static void two_arg_command(const char *command, arg_t src, arg_t dst);
 
 /* Functions that generate x86 commands. */
 static void mov(arg_t, arg_t);
+static void cmov(operator_t, arg_t, arg_t);
 static void add(arg_t, arg_t);
 static void idiv(arg_t, arg_t);
 static void imul(arg_t, arg_t);
@@ -278,6 +278,27 @@ static void generate_binop(expr_ast_t *expr, regset_t regset) {
         arg_mem(left_reg, 0)
       );
       break;
+    } case EQ:
+      case GT:
+      case GTE:
+      case LT:
+      case LTE: {
+      cmp(
+        arg_reg(left_reg),
+        arg_reg(right_reg)
+      );
+      
+      mov(
+        arg_lit(0),
+        arg_reg(left_reg)
+      );
+
+      cmov(
+        expr->op,
+        arg_lit(1),
+        arg_reg(left_reg)
+      );
+      break;
     } default:
       error(0, "Don't know how to translate code for binary operator %s.",
           oper_to_str(expr->op));
@@ -368,6 +389,32 @@ static void mov(arg_t src, arg_t dst) {
   two_arg_command("mov", src, dst);
 }
 
+static void cmov(operator_t op, arg_t src, arg_t dst) {
+  const char *command;
+
+  switch (op) {
+    case EQ:
+      command = "cmove";
+      break;
+    case GT:
+      command = "cmovg";
+      break;
+    case GTE:
+      command = "cmovge";
+    case LT:
+      command = "cmovl";
+      break;
+    case LTE:
+      command = "cmovle";
+      break;
+    default:
+      assert(false);
+      return;
+  }
+
+  two_arg_command(command, src, dst);
+}
+
 static void add(arg_t src, arg_t dst) {
   two_arg_command("add", src, dst);
 }
@@ -381,7 +428,24 @@ static void imul(arg_t src, arg_t dst) {
 }
 
 static void idiv(arg_t src, arg_t dst) {
-  two_arg_command("idiv", src, dst);
+  mov(
+    dst,
+    arg_reg("rax")
+  );
+
+  mov(
+    arg_lit(0),
+    arg_reg("rdx")
+  );
+
+  fprintf(out, "\tidivq ");
+  gen_arg(src);
+  fprintf(out, "\n");
+
+  mov(
+    arg_reg("rax"),
+    dst
+  );
 }
 
 static void cmp(arg_t src, arg_t dst) {
