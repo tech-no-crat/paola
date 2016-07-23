@@ -122,6 +122,8 @@ const char *stat_t_to_str(stat_ast_type_t stat_type) {
       return "ExpressionStatement";
     case DECL_STAT:
       return "DeclarationStatement";
+    case SKIP_STAT:
+      return "SkipStatement";
     default:
       return "UnknownStatement";
   }

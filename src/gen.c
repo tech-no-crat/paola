@@ -190,6 +190,8 @@ static void generate_statement(stat_ast_t *stat, regset_t regset) {
     } case EXPR_STAT: {
       generate_expression(stat->expr, regset);
       break;
+    } case SKIP_STAT: {
+      break;
     } default:
       error(0, "Don't know how to generate code for statement %s.\n",
           stat_t_to_str(stat->type));

@@ -30,6 +30,7 @@ static stat_ast_t *create_for_stat(expr_ast_t *, expr_ast_t *, expr_ast_t *, sta
 static expr_ast_t *create_variable_ref(char *);
 static stat_ast_t *create_declaration(datatype_t, char *, expr_ast_t *);
 static stat_ast_t *create_expr_statement(expr_ast_t *);
+static stat_ast_t *create_skip_statement(void);
 
 static datatype_t match_datatype(token_t *token);
 static operator_t match_binop(void);
@@ -115,6 +116,10 @@ stat_ast_t *parse_stat() {
       break;
     case INT_LIT_TOK:
       stat = create_expr_statement(parse_expr());
+      match_token(SCOL_TOK);
+      break;
+    case SCOL_TOK:
+      stat = create_skip_statement();
       match_token(SCOL_TOK);
       break;
     default:
@@ -329,6 +334,12 @@ static stat_ast_t *create_expr_statement(expr_ast_t *expr) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = EXPR_STAT;
   stat->expr = expr;
+  return stat;
+}
+
+static stat_ast_t *create_skip_statement() {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->type = SKIP_STAT;
   return stat;
 }
 

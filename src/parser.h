@@ -23,7 +23,8 @@ typedef enum {
   FOR_STAT,
   BLOCK_STAT,
   DECL_STAT,
-  EXPR_STAT
+  EXPR_STAT,
+  SKIP_STAT
 } stat_ast_type_t;
 
 typedef enum {

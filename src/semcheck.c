@@ -84,6 +84,8 @@ static void semcheck_stat(stat_ast_t *stat) {
     } case EXPR_STAT: {
       semcheck_expr(stat->expr);
       break;
+    } case SKIP_STAT: {
+      break;
     } default: {
       error(0, "Don't know how to semantically check statement %s.",
           stat_t_to_str(stat->type));
