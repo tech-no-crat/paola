@@ -109,7 +109,28 @@ token_t next_token() {
         token = create_token(SCOL_TOK);
         break;
       case '=':
-        token = create_token(EQ_TOK);
+        if (peek() == '=') {
+          consume_char();
+          token = create_token(EQ_TOK);
+        } else {
+          token = create_token(ASSIGN_TOK);
+        }
+        break;
+      case '<':
+        if (peek() == '=') {
+          consume_char();
+          token = create_token(LTE_TOK);
+        } else {
+          token = create_token(LT_TOK);
+        }
+        break;
+      case '>':
+        if (peek() == '=') {
+          consume_char();
+          token = create_token(GTE_TOK);
+        } else {
+          token = create_token(GT_TOK);
+        }
         break;
       default: {
         position_t pos = create_position();

@@ -136,7 +136,7 @@ static expr_ast_t *parse_expr() {
   if (is_expr_binop(next_token)) {
     operator_t op = match_binop();
     expr_ast_t *t = parse_subexpr();
-    expr->assign = true;
+    expr->assign = (op == ASSIGN);
     expr = create_binop_expr(op, expr, t);
   }
 
@@ -212,8 +212,8 @@ static stat_ast_t *parse_declaration() {
   match_token(IDENT_TOK);
 
   expr_ast_t *value = 0;
-  if (next_token->type == EQ_TOK) {
-    match_token(EQ_TOK);
+  if (next_token->type == ASSIGN_TOK) {
+    match_token(ASSIGN_TOK);
     value = parse_expr();
   }
 
@@ -246,9 +246,24 @@ static operator_t match_binop(void) {
     case FSLASH_TOK:
       match_token(FSLASH_TOK);
       return DIV;
+    case ASSIGN_TOK:
+      match_token(ASSIGN_TOK);
+      return ASSIGN;
     case EQ_TOK:
       match_token(EQ_TOK);
-      return ASSIGN;
+      return EQ;
+    case GT_TOK:
+      match_token(GT_TOK);
+      return GT;
+    case GTE_TOK:
+      match_token(GTE_TOK);
+      return GTE;
+    case LT_TOK:
+      match_token(LT_TOK);
+      return LT;
+    case LTE_TOK:
+      match_token(LTE_TOK);
+      return LTE;
     default:
       error(&next_token->pos, "Expected binary operator.");
       return INVALID_OP;
@@ -285,7 +300,9 @@ static bool is_term_binop(token_t *token) {
 
 
 static bool is_expr_binop(token_t *token) {
-  return token->type == EQ_TOK;
+  return token->type == ASSIGN_TOK || token->type == EQ_TOK
+      || token->type == GT_TOK || token->type == GTE_TOK
+      || token->type == LT_TOK || token->type == LTE_TOK;
 }
 
 static expr_ast_t *create_invalid_expr(void) {
