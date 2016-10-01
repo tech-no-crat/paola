@@ -61,6 +61,9 @@ void print_expr_ast(expr_ast_t *ast) {
     case VAR_REF:
       printf("VarRef(%s)", ast->name);
       break;
+    case FUNC_CALL:
+      printf("Call(%s)", ast->name);
+      break;
     default:
       printf("UNKNOWN_EXPRESSION");
       break;
@@ -106,13 +109,19 @@ void print_stat_ast(stat_ast_t *ast) {
       printf(")");
       break;
     case DECL_STAT:
-      printf("Declaration(%s, %s, ", datatype_to_str(ast->datatype), ast->target);
-      if (ast->value) {
-        print_expr_ast(ast->value);
+      if (ast->is_func) {
+        printf("Function(%s, %s, ", datatype_to_str(ast->datatype), ast->target);
+        print_stat_ast(ast->func_body);
+        printf(")");
       } else {
-        printf("Skip");
+        printf("Declaration(%s, %s, ", datatype_to_str(ast->datatype), ast->target);
+        if (ast->value) {
+          print_expr_ast(ast->value);
+        } else {
+          printf("Skip");
+        }
+        printf(")");
       }
-      printf(")");
       break;
     default:
       printf("UNKNOWN_STATEMENT");

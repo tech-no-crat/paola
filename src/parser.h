@@ -7,7 +7,8 @@ typedef enum {
   INVALID_EXPR,
   INT_LIT,
   BIN_OP,
-  VAR_REF
+  VAR_REF,
+  FUNC_CALL
 } expr_ast_type_t;
 
 typedef enum {
@@ -50,7 +51,7 @@ typedef struct expr_ast_type {
       operator_t op;
       struct expr_ast_type *left, *right;
     };
-    char *name; // VAR_REF
+    char *name; // VAR_REF, FUNC_CALL
   };
 } expr_ast_t;
 
@@ -80,7 +81,14 @@ typedef struct stat_ast_type {
     struct { // DECL_STAT
       datatype_t datatype;
       char *target;
-      expr_ast_t *value;
+      bool is_func;
+      union {
+        expr_ast_t *value; // Variable declaration
+        struct { // Function declaration
+          struct stat_ast_type *func_body;
+          // TODO: Argument list, inline specifier etc.
+        };
+      };
     };
   };
   list_elem_t block_elem;

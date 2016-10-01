@@ -1,7 +1,7 @@
 // @COMPILE OK
 // @EXPECT 128
 
-{
+int main() {
   int i;
   int x;
   i = 1;

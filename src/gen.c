@@ -13,9 +13,9 @@
  * the range [0, register_count]). */
 typedef int16_t regset_t;
 
-static const uint8_t register_count = 11;
-static const regset_t initial_regset = (1 << 11) - 1; // All registers
-static const char *register_names[11] = {
+static const uint8_t register_count = 10;
+static const regset_t initial_regset = (1 << 10) - 1; // All registers
+static const char *register_names[10] = {
   // We don't use rax and rdx because it's used in division (TODO)
   "rbx",
   "rcx",
@@ -59,6 +59,7 @@ static void generate_expression(expr_ast_t *, regset_t);
 static void generate_var_ref(expr_ast_t *, regset_t);
 static void generate_binop(expr_ast_t *, regset_t);
 static void generate_int_lit(expr_ast_t *, regset_t);
+static void generate_func_call(expr_ast_t *, regset_t);
 
 /* Gets the number of the next unused label. The full name of the labels shall
  * be lX, where X is the numbers this function returns. */
@@ -77,11 +78,16 @@ static arg_t arg_reg(const char *);
 static arg_t arg_mem(const char *, uint32_t);
 
 /* Helper functions for generating instructions. */
-static void gen_arg(arg_t arg);
-static void two_arg_command(const char *command, arg_t src, arg_t dst);
+static void gen_arg(arg_t);
+static void two_arg_command(const char *, arg_t, arg_t);
+static void one_arg_command(const char *, arg_t);
+static void save_registers(void);
+static void load_registers(void);
 
 /* Functions that generate x86 commands. */
 static void mov(arg_t, arg_t);
+static void push(arg_t);
+static void pop(arg_t);
 static void cjmp(operator_t op, int jlabel); // Conditional jump
 static void add(arg_t, arg_t);
 static void idiv(arg_t, arg_t);
@@ -92,14 +98,16 @@ static void jne(int32_t);
 static void je(int32_t);
 static void jmp(int32_t);
 static void label(int32_t);
+static void func_label(char *);
+static void call(char *);
 static void ret(void);
 
 void generate_code(FILE *file, stat_ast_t *ast) {
   init_gen(file);
 
-  /* TODO: The name of the main function is platform specific. */
-  fprintf(out, "\t.text\n\t.globl main\nmain:\n");
+  fprintf(out, "\t.text\n\t.globl _main\n");
   generate_statement(ast, initial_regset);
+  fprintf(out, "main:\n\tcall _main\n\tret\n");
 }
 
 static void generate_statement(stat_ast_t *stat, regset_t regset) {
@@ -183,9 +191,14 @@ static void generate_statement(stat_ast_t *stat, regset_t regset) {
       assert(symbol != 0);
       assert(symbol->datatype == INT_DT);
 
-      int datatype_size = 8; //TODO: Should depend on sizeof(type)
-      symbol->stack_offset = next_stack_offset;
-      next_stack_offset += datatype_size;
+      if (stat->is_func) {
+        func_label(stat->target);
+        generate_statement(stat->func_body, regset);
+      } else {
+        int datatype_size = 8; //TODO: Should depend on sizeof(type)
+        symbol->stack_offset = next_stack_offset;
+        next_stack_offset += datatype_size;
+      }
       break;
     } case EXPR_STAT: {
       generate_expression(stat->expr, regset);
@@ -209,6 +222,9 @@ static void generate_expression(expr_ast_t *expr, regset_t regset) {
       break;
     case VAR_REF:
       generate_var_ref(expr, regset);
+      break;
+    case FUNC_CALL:
+      generate_func_call(expr, regset);
       break;
     default:
       error(0, "Don't know how to generate code for expression %s.",
@@ -238,6 +254,29 @@ static void generate_var_ref(expr_ast_t *expr, regset_t regset) {
       arg_mem("rsp", -symbol->stack_offset),
       arg_reg(next_reg_name(regset))
     );
+  }
+}
+
+static void generate_func_call(expr_ast_t *expr, regset_t regset) {
+  save_registers();
+  call(expr->name);
+  load_registers();
+
+  mov(
+    arg_reg("rax"),
+    arg_reg(next_reg_name(regset))
+  );
+}
+
+static void save_registers() {
+  for (int i = 0; i < register_count; i++) {
+    push(arg_reg(register_names[i]));
+  }
+}
+
+static void load_registers() {
+  for (int i = register_count - 1; i >= 0; i--) {
+    pop(arg_reg(register_names[i]));
   }
 }
 
@@ -396,8 +435,22 @@ static void two_arg_command(const char *command, arg_t src, arg_t dst) {
   fprintf(out, "\n");
 }
 
+static void one_arg_command(const char *command, arg_t src) {
+  fprintf(out, "\t%s ", command);
+  gen_arg(src);
+  fprintf(out, "\n");
+}
+
 static void mov(arg_t src, arg_t dst) {
   two_arg_command("mov", src, dst);
+}
+
+static void push(arg_t arg) {
+  one_arg_command("push", arg);
+}
+
+static void pop(arg_t arg) {
+  one_arg_command("pop", arg);
 }
 
 static void cjmp(operator_t op, int jlabel) { // Conditional jump
@@ -482,4 +535,12 @@ static void ret(void) {
 
 static void label(int32_t label_id) {
   fprintf(out, "l%d:\n", label_id);
+}
+
+static void func_label(char *name) {
+  fprintf(out, "_%s:\n", name);
+}
+
+static void call(char *name) {
+  fprintf(out, "\tcall _%s\n", name);
 }

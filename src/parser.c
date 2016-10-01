@@ -16,7 +16,7 @@ static expr_ast_t *parse_term(void);
 static expr_ast_t *parse_factor(void);
 static expr_ast_t *parse_int_lit(void);
 static stat_ast_t *parse_declaration(void);
-static expr_ast_t *parse_variable_ref(void);
+static stat_ast_t *parse_block_stat(void);
 
 static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
 static stat_ast_t *create_return_stat(expr_ast_t *);
@@ -28,7 +28,8 @@ static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *stat);
 static stat_ast_t *create_for_stat(expr_ast_t *, expr_ast_t *, expr_ast_t *, stat_ast_t *);
 
 static expr_ast_t *create_variable_ref(char *);
-static stat_ast_t *create_declaration(datatype_t, char *, expr_ast_t *);
+static expr_ast_t *create_function_call(char *);
+static stat_ast_t *create_declaration(datatype_t, char *);
 static stat_ast_t *create_expr_statement(expr_ast_t *);
 static stat_ast_t *create_skip_statement(void);
 
@@ -44,7 +45,14 @@ static token_t *next_token;
 
 stat_ast_t *parse(token_t *tokens) {
   init_parser(tokens);
-  return parse_stat();
+
+  stat_ast_t *program = create_block_stat();
+  while (next_token->type != PROGRAM_END_TOK) {
+    stat_ast_t *stat = parse_stat();
+    list_push_back(&program->stats, &stat->block_elem);
+  }
+
+  return program;
 }
 
 stat_ast_t *parse_stat() {
@@ -98,21 +106,15 @@ stat_ast_t *parse_stat() {
       stat = create_for_stat(init, cond, iter, body);
       break;
     } case LBRACE_TOK:
-      match_token(LBRACE_TOK);
-      stat = create_block_stat();
-      while (next_token->type != RBRACE_TOK) {
-        stat_ast_t *x = parse_stat();
-        list_push_back(&stat->stats, &x->block_elem);
-      }
-      match_token(RBRACE_TOK);
-      break;
+      stat = parse_block_stat();
+            break;
     case IDENT_TOK:
       if (is_type_ident(next_token)) {
         stat = parse_declaration();
       } else {
         stat = create_expr_statement(parse_expr());
+        match_token(SCOL_TOK);
       }
-      match_token(SCOL_TOK);
       break;
     case INT_LIT_TOK:
       stat = create_expr_statement(parse_expr());
@@ -183,16 +185,18 @@ static expr_ast_t *parse_factor() {
   }
 
   if (next_token->type == IDENT_TOK) {
-    return parse_variable_ref();
+    char *name = next_token->name;
+    match_token(IDENT_TOK);
+    if (next_token->type == LPAREN_TOK) {
+      match_token(LPAREN_TOK);
+      match_token(RPAREN_TOK);
+      return create_function_call(name);
+    } else {
+      return create_variable_ref(name);
+    }
   }
 
   return parse_int_lit();
-}
-
-static expr_ast_t *parse_variable_ref() {
-  char *name = next_token->name;
-  match_token(IDENT_TOK);
-  return create_variable_ref(name);
 }
 
 static expr_ast_t *parse_int_lit() {
@@ -215,14 +219,39 @@ static stat_ast_t *parse_declaration() {
   match_token(IDENT_TOK);
   char *target = next_token->name;
   match_token(IDENT_TOK);
+  stat_ast_t *decl_stat = create_declaration(type, target);
 
-  expr_ast_t *value = 0;
-  if (next_token->type == ASSIGN_TOK) {
-    match_token(ASSIGN_TOK);
-    value = parse_expr();
+  if (next_token->type == LPAREN_TOK) { // Function declaration
+    match_token(LPAREN_TOK);
+    match_token(RPAREN_TOK);
+    decl_stat->is_func = true;
+    if (next_token->type == LBRACE_TOK) {
+      decl_stat->func_body = parse_block_stat();
+    } else {
+      match_token(SCOL_TOK);
+    }
+  } else { // Variable declaration
+    decl_stat->is_func = false;
+    if (next_token->type == ASSIGN_TOK) {
+      match_token(ASSIGN_TOK);
+      decl_stat->value = parse_expr();
+    }
+    match_token(SCOL_TOK);
   }
 
-  return create_declaration(type, target, value);
+  return decl_stat;
+}
+
+static stat_ast_t *parse_block_stat() {
+  match_token(LBRACE_TOK);
+  stat_ast_t *stat = create_block_stat();
+  while (next_token->type != RBRACE_TOK) {
+    stat_ast_t *x = parse_stat();
+    list_push_back(&stat->stats, &x->block_elem);
+  }
+  match_token(RBRACE_TOK);
+
+  return stat;
 }
 
 static expr_ast_t *create_binop_expr(operator_t op, expr_ast_t *left,
@@ -391,12 +420,18 @@ static expr_ast_t *create_variable_ref(char *name) {
   return expr;
 }
 
-static stat_ast_t *create_declaration(datatype_t datatype, char *target, expr_ast_t *value) {
+static expr_ast_t *create_function_call(char *name) {
+  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->type = FUNC_CALL;
+  expr->name = name;
+  return expr;
+}
+
+static stat_ast_t *create_declaration(datatype_t datatype, char *target) {
   stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
   stat->type = DECL_STAT;
   stat->datatype = datatype;
   stat->target = target;
-  stat->value = value;
   return stat;
 }
 

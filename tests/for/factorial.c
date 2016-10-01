@@ -1,7 +1,7 @@
 // @COMPILE OK
 // @EXPECT 120
 // Computes 5! = 120
-{
+int main() {
   int i;
   int result;
 

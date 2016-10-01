@@ -1,6 +1,6 @@
 // @COMPILE OK
 // @EXPECT 57
-{
+int main() {
   int result;
   result = 0;
 

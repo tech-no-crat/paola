@@ -1,3 +1,5 @@
 //@COMPILE OK
 //@EXPECT 100
-return 20 * 5;
+int main() {
+  return 20 * 5;
+}

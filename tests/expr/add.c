@@ -1,3 +1,5 @@
 //@COMPILE OK
 //@EXPECT 10
-return 8 + 2;
+int main () {
+  return 8 + 2;
+}

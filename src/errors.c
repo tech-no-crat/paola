@@ -139,6 +139,8 @@ const char *expr_t_to_str(expr_ast_type_t expr_type) {
       return "BinaryOperandExpression";
     case VAR_REF:
       return "VariableReferenceExpression";
+    case FUNC_CALL:
+      return "FunctionCallExpression";
     default:
       return "UnknownExpression";
   }

@@ -1,3 +1,5 @@
 // @COMPILE OK
 // @EXPECT 21
-return (5 + 2) * 3;
+int main() {
+  return (5 + 2) * 3;
+}

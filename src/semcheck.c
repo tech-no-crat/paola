@@ -70,12 +70,19 @@ static void semcheck_stat(stat_ast_t *stat) {
         break;
       }
 
-      if (stat->value) {
-        datatype_t value_type = semcheck_expr(stat->value);
-        if (value_type != stat->datatype) {
-          type_error(stat->datatype, value_type, "variable initialization");
-          // Intentionally do not break here, continue to add the variable to
-          // the symbol table.
+      if (stat->is_func) {
+        if (stat->func_body->type != BLOCK_STAT) {
+          error(0, "Function body must be a block statement.");
+        }
+        semcheck_stat(stat->func_body);
+      } else { // Variable declaration
+        if (stat->value) {
+          datatype_t value_type = semcheck_expr(stat->value);
+          if (value_type != stat->datatype) {
+            type_error(stat->datatype, value_type, "variable initialization");
+            // Intentionally do not break here, continue to add the variable to
+            // the symbol table.
+          }
         }
       }
 
@@ -101,10 +108,11 @@ static datatype_t semcheck_expr(expr_ast_t *expr) {
       return INT_DT;
     } case BIN_OP: {
       return semcheck_binop(expr);
-    } case VAR_REF: {
+    } case VAR_REF:
+      case FUNC_CALL: {
       symbol_t *symbol = symtable_find(expr->name);
       if (!symbol) {
-        error(0, "Variable %s not defined in current scope.", expr->name);
+        error(0, "Symbol %s not defined in current scope.", expr->name);
         return INVALID_DT;
       }
       return symbol->datatype;

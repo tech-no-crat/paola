@@ -1,6 +1,6 @@
 //@COMPILE OK
 //@EXPECT 48
-{
+int main() {
   int a;
   int b;
   int c;
