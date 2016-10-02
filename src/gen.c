@@ -187,9 +187,8 @@ static void generate_statement(stat_ast_t *stat, regset_t regset) {
       }
       break;
     } case DECL_STAT: {
-      symbol_t *symbol = symtable_find(stat->target);
+      symbol_t *symbol = stat->symbol;
       assert(symbol != 0);
-      assert(symbol->datatype == INT_DT);
 
       if (stat->is_func) {
         func_label(stat->target);
@@ -234,9 +233,8 @@ static void generate_expression(expr_ast_t *expr, regset_t regset) {
 }
 
 static void generate_var_ref(expr_ast_t *expr, regset_t regset) {
-  symbol_t *symbol = symtable_find(expr->name);
+  symbol_t *symbol = expr->symbol;
   assert(symbol != 0);
-  assert(symbol->datatype == INT_DT);
   
   if (expr->assign) { // Leave the address at the destination register
     const char *dst = next_reg_name(regset);

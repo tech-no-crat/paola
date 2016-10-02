@@ -14,7 +14,10 @@ static bool is_const(expr_ast_t *);
 
 void semcheck(stat_ast_t *ast) {
   init_semcheck();
+
+  symtable_open_scope("global");
   semcheck_stat(ast);
+  symtable_close_scope();
 }
 
 static void semcheck_stat(stat_ast_t *stat) {
@@ -74,7 +77,10 @@ static void semcheck_stat(stat_ast_t *stat) {
         if (stat->func_body->type != BLOCK_STAT) {
           error(&stat->pos, "Function body must be a block statement.");
         }
+
+        symtable_open_scope(stat->target);
         semcheck_stat(stat->func_body);
+        symtable_close_scope();
       } else { // Variable declaration
         if (stat->value) {
           datatype_t value_type = semcheck_expr(stat->value);
@@ -86,7 +92,8 @@ static void semcheck_stat(stat_ast_t *stat) {
         }
       }
 
-      symtable_insert(create_symtable_entry(stat->target, stat->datatype));
+      stat->symbol = create_symtable_entry(stat->target, stat->datatype);
+      symtable_insert(stat->symbol);
       break;
     } case EXPR_STAT: {
       semcheck_expr(stat->expr);
@@ -115,6 +122,7 @@ static datatype_t semcheck_expr(expr_ast_t *expr) {
         error(&expr->pos, "Symbol %s not defined in current scope.", expr->name);
         return INVALID_DT;
       }
+      expr->symbol = symbol;
       return symbol->datatype;
     } default: {
       error(&expr->pos, "Don't know how to semantically check expression %s.",

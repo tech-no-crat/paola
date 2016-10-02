@@ -422,6 +422,7 @@ static expr_ast_t *create_variable_ref(char *name) {
   expr->assign = false;
   expr->type = VAR_REF;
   expr->name = name;
+  expr->symbol = 0;
   return expr;
 }
 
@@ -437,6 +438,7 @@ static stat_ast_t *create_declaration(datatype_t datatype, char *target) {
   stat->type = DECL_STAT;
   stat->datatype = datatype;
   stat->target = target;
+  stat->symbol = 0;
   return stat;
 }
 

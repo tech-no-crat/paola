@@ -42,6 +42,14 @@ typedef enum {
   LTE
 } operator_t;
 
+typedef struct {
+  char *name;
+  datatype_t datatype;
+  list_elem_t scope_elem;
+  uint32_t stack_offset;
+  //TODO: Also store info about whether it's a function, if it's constant etc.
+} symbol_t;
+
 typedef struct expr_ast_type {
   expr_ast_type_t type;
   position_t pos;
@@ -53,7 +61,10 @@ typedef struct expr_ast_type {
       operator_t op;
       struct expr_ast_type *left, *right;
     };
-    char *name; // VAR_REF, FUNC_CALL
+    struct {
+      char *name; // VAR_REF, FUNC_CALL
+      symbol_t *symbol;
+    };
   };
 } expr_ast_t;
 
@@ -83,6 +94,7 @@ typedef struct stat_ast_type {
 
     struct { // DECL_STAT
       datatype_t datatype;
+      symbol_t *symbol;
       char *target;
       bool is_func;
       union {
