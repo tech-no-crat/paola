@@ -11,38 +11,41 @@ static void init_parser(token_t *tokens);
 
 static expr_ast_t *parse_expr(void);
 static expr_ast_t *parse_subexpr(void);
-static stat_ast_t *parse_stat(void);
 static expr_ast_t *parse_term(void);
 static expr_ast_t *parse_factor(void);
 static expr_ast_t *parse_int_lit(void);
+
+static stat_ast_t *parse_stat(void);
 static stat_ast_t *parse_declaration(void);
 static stat_ast_t *parse_block_stat(void);
 
 static expr_ast_t *create_binop_expr(operator_t, expr_ast_t *, expr_ast_t *);
-static stat_ast_t *create_return_stat(expr_ast_t *);
 static expr_ast_t *create_invalid_expr(void);
+static expr_ast_t *create_variable_ref(char *);
+static expr_ast_t *create_function_call(char *);
+static expr_ast_t *create_expr(void);
+
+static stat_ast_t *create_return_stat(expr_ast_t *);
 static stat_ast_t *create_invalid_stat(void);
 static stat_ast_t *create_block_stat(void);
 static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
 static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *stat);
 static stat_ast_t *create_for_stat(expr_ast_t *, expr_ast_t *, expr_ast_t *, stat_ast_t *);
-static stat_ast_t *create_stat(void);
-static expr_ast_t *create_expr(void);
-
-static expr_ast_t *create_variable_ref(char *);
-static expr_ast_t *create_function_call(char *);
 static stat_ast_t *create_declaration(datatype_t, char *);
 static stat_ast_t *create_expr_statement(expr_ast_t *);
 static stat_ast_t *create_skip_statement(void);
+static stat_ast_t *create_stat(void);
 
 static datatype_t match_datatype(token_t *token);
 static operator_t match_binop(void);
+static void match_token(token_type_t);
+
 static bool is_factor_binop(token_t *token);
 static bool is_term_binop(token_t *token);
 static bool is_expr_binop(token_t *token);
 static bool is_type_ident(token_t *token);
-static void match_token(token_type_t);
 
+// Points to the next token that has not been parsed yet.
 static token_t *next_token;
 
 stat_ast_t *parse(token_t *tokens) {

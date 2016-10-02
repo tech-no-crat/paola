@@ -32,7 +32,9 @@ static char next_char; /* The next character to be tokenized. */
 static FILE *input;
 static int line, character;
 
-//TODO: Return a linked list (or resizable vector) of tokens
+/* Takes a file pointer, and returns the series of tokens in that file.
+ * An additional token is added at the end, the PROGRAM_END_TOK.
+ * TODO: Return a linked list (or resizable vector) of tokens. */
 token_t *tokenize(FILE *file) {
   init_tokenizer(file);
 
@@ -145,7 +147,6 @@ token_t next_token() {
 
   return token;
 }
-
 
 static token_t create_token(token_type_t type) {
   token_t token;

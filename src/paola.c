@@ -7,7 +7,8 @@
 #include "errors.h"
 #include "utils.h"
 
-enum { // Different exit codes denote different error types
+// Compiler exit codes: different exit codes denote different error types, 0 indicates success.
+enum { 
   OTHER_ERR = 1,
   LEXER_ERR,
   PARSE_ERR,
@@ -32,7 +33,7 @@ int main (int argc, char **argv) {
   FILE *fin = fopen(options.input_file, "r");
   errors_init();
 
-  /* Lexer */
+  /* Lexer: Produce a list of tokens from the input file. */
   token_t *tokens = tokenize(fin);
   if_errors_exit(LEXER_ERR);
 
@@ -40,7 +41,7 @@ int main (int argc, char **argv) {
     print_tokens(tokens);
   }
 
-  /* Parser */
+  /* Parser: Produce an Abstract Syntax Tree from the list of tokens. */
   stat_ast_t *ast = parse(tokens);
   if_errors_exit(PARSE_ERR);
 
@@ -48,11 +49,11 @@ int main (int argc, char **argv) {
     print_stat_ast(ast);
   }
 
-  /* Semantic checker */
+  /* Semantic checker: Check the AST for semantic errors. */
   semcheck(ast);
   if_errors_exit(SEM_ERR);
 
-  /* Code generation */
+  /* Code generation: Produce x86 assembly code from the AST. */
   FILE *fout = fopen(options.output_file, "w");
   generate_code(fout, ast);
   fclose(fout);
