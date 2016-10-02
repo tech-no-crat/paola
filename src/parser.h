@@ -44,6 +44,8 @@ typedef enum {
 
 typedef struct expr_ast_type {
   expr_ast_type_t type;
+  position_t pos;
+
   bool assign;
   union {
     int ival; // INT_LIT
@@ -57,6 +59,7 @@ typedef struct expr_ast_type {
 
 typedef struct stat_ast_type {
   stat_ast_type_t type;
+  position_t pos;
 
   union {
     expr_ast_t *expr; // RETURN_STAT, EXPR_STAT

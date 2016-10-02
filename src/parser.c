@@ -26,6 +26,8 @@ static stat_ast_t *create_block_stat(void);
 static stat_ast_t *create_if_stat(expr_ast_t *, stat_ast_t *, stat_ast_t *);
 static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *stat);
 static stat_ast_t *create_for_stat(expr_ast_t *, expr_ast_t *, expr_ast_t *, stat_ast_t *);
+static stat_ast_t *create_stat(void);
+static expr_ast_t *create_expr(void);
 
 static expr_ast_t *create_variable_ref(char *);
 static expr_ast_t *create_function_call(char *);
@@ -194,9 +196,12 @@ static expr_ast_t *parse_factor() {
     } else {
       return create_variable_ref(name);
     }
+  } else if (next_token->type == INT_LIT_TOK) {
+    return parse_int_lit();
+  } else {
+    error(&next_token->pos, "Expected integer literal or identifier.");
+    return create_invalid_expr();
   }
-
-  return parse_int_lit();
 }
 
 static expr_ast_t *parse_int_lit() {
@@ -205,7 +210,7 @@ static expr_ast_t *parse_int_lit() {
     return create_invalid_expr();
   }
 
-  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr_ast_t *expr = create_expr();
   expr->assign = false;
   expr->type = INT_LIT;
   expr->ival = next_token->ival;
@@ -256,7 +261,7 @@ static stat_ast_t *parse_block_stat() {
 
 static expr_ast_t *create_binop_expr(operator_t op, expr_ast_t *left,
     expr_ast_t *right) {
-  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr_ast_t *expr = create_expr();
   expr->assign = false;
   expr->type = BIN_OP;
   expr->op = op;
@@ -340,40 +345,40 @@ static bool is_expr_binop(token_t *token) {
 }
 
 static expr_ast_t *create_invalid_expr(void) {
-  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr_ast_t *expr = create_expr();
   expr->assign = false;
   expr->type = INVALID_EXPR;
   return expr;
 }
 
 static stat_ast_t *create_invalid_stat(void) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = INVALID_STAT;
   return stat;
 }
 
 static stat_ast_t *create_return_stat(expr_ast_t *expr) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = RETURN_STAT;
   stat->expr = expr;
   return stat;
 }
 
 static stat_ast_t *create_expr_statement(expr_ast_t *expr) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = EXPR_STAT;
   stat->expr = expr;
   return stat;
 }
 
 static stat_ast_t *create_skip_statement() {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = SKIP_STAT;
   return stat;
 }
 
 static stat_ast_t *create_block_stat(void) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = BLOCK_STAT;
   list_init(&stat->stats);
 
@@ -382,7 +387,7 @@ static stat_ast_t *create_block_stat(void) {
 
 static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
     stat_ast_t *fstat) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = IF_STAT;
   stat->cond = cond;
   stat->tstat = tstat;
@@ -392,7 +397,7 @@ static stat_ast_t *create_if_stat(expr_ast_t *cond, stat_ast_t *tstat,
 }
 
 static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *body) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = WHILE_STAT;
   stat->cond = cond;
   stat->body = body;
@@ -402,7 +407,7 @@ static stat_ast_t *create_while_stat(expr_ast_t *cond, stat_ast_t *body) {
 
 static stat_ast_t *create_for_stat(expr_ast_t *init, expr_ast_t *cond,
     expr_ast_t *iter, stat_ast_t *body) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = FOR_STAT;
   stat->init = init;
   stat->cond = cond;
@@ -413,7 +418,7 @@ static stat_ast_t *create_for_stat(expr_ast_t *init, expr_ast_t *cond,
 }
 
 static expr_ast_t *create_variable_ref(char *name) {
-  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr_ast_t *expr = create_expr();
   expr->assign = false;
   expr->type = VAR_REF;
   expr->name = name;
@@ -421,18 +426,31 @@ static expr_ast_t *create_variable_ref(char *name) {
 }
 
 static expr_ast_t *create_function_call(char *name) {
-  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr_ast_t *expr = create_expr();
   expr->type = FUNC_CALL;
   expr->name = name;
   return expr;
 }
 
 static stat_ast_t *create_declaration(datatype_t datatype, char *target) {
-  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat_ast_t *stat = create_stat();
   stat->type = DECL_STAT;
   stat->datatype = datatype;
   stat->target = target;
   return stat;
+}
+
+static stat_ast_t *create_stat() {
+  stat_ast_t *stat = (stat_ast_t *) malloc(sizeof(stat_ast_t));
+  stat->pos = next_token->pos;
+  return stat;
+}
+
+static expr_ast_t *create_expr() {
+  expr_ast_t *expr = (expr_ast_t *) malloc(sizeof(expr_ast_t));
+  expr->pos = next_token->pos;
+  return expr;
+
 }
 
 static bool is_type_ident(token_t *token) {
